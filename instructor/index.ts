@@ -343,6 +343,11 @@ const oac = new aws.cloudfront.OriginAccessControl("site", {
 // CloudFront Distribution
 // ============================================================================
 
+// Use AWS managed CachingOptimized policy instead of deprecated forwardedValues
+const cachingOptimized = aws.cloudfront.getCachePolicyOutput({
+  name: "Managed-CachingOptimized",
+});
+
 const distribution = new aws.cloudfront.Distribution("site", {
   enabled: true,
   defaultRootObject: "index.html",
@@ -359,13 +364,8 @@ const distribution = new aws.cloudfront.Distribution("site", {
     viewerProtocolPolicy: "redirect-to-https",
     allowedMethods: ["GET", "HEAD"],
     cachedMethods: ["GET", "HEAD"],
-    forwardedValues: {
-      queryString: false,
-      cookies: { forward: "none" },
-    },
-    minTtl: 0,
-    defaultTtl: 300,
-    maxTtl: 600,
+    cachePolicyId: cachingOptimized.apply((p) => p.id!),
+    compress: true,
   },
   restrictions: {
     geoRestriction: { restrictionType: "none" },
