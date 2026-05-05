@@ -1,9 +1,11 @@
 import hashlib
 import json
 import os
+from urllib.parse import quote
 
 import pulumi
 import pulumi_aws as aws
+import pulumi_command as command
 
 # ============================================================================
 # Configuration
@@ -576,6 +578,22 @@ with open(buildspec_path) as f:
     buildspec_content = f.read()
 buildspec_fingerprint = hashlib.sha256(buildspec_content.encode()).hexdigest()
 
+
+def hash_directory(directory: str) -> str:
+    hasher = hashlib.sha256()
+    for root, dirs, files in os.walk(directory):
+        dirs.sort()
+        for filename in sorted(files):
+            file_path = os.path.join(root, filename)
+            with open(file_path, "rb") as file_obj:
+                hasher.update(file_obj.read())
+    return hasher.hexdigest()
+
+
+source_code_fingerprint = hash_directory(
+    os.path.join(os.path.dirname(__file__), "mcp-server-code")
+)
+
 agent_image = aws.codebuild.Project(
     "agent_image",
     name=agent_image_project_name,
@@ -645,6 +663,7 @@ trigger_build = aws.lambda_.Invocation(
         "sourceVersion": agent_source_object.version_id,
         "imageTag": image_tag,
         "buildspecSha256": buildspec_fingerprint,
+        "sourceCodeSha256": source_code_fingerprint,
     },
     opts=pulumi.ResourceOptions(
         depends_on=[
@@ -713,6 +732,7 @@ mcp_gateway = aws.bedrock.AgentcoreGateway(
     authorizer_configuration={
         "custom_jwt_authorizer": {
             "allowed_clients": [mcp_client.id],
+            "allowed_scopes": ["aws.cognito.signin.user.admin"],
             "discovery_url": pulumi.Output.all(
                 current_region, mcp_user_pool.id
             ).apply(
@@ -725,6 +745,150 @@ mcp_gateway = aws.bedrock.AgentcoreGateway(
         "Module": "Gateway",
     },
 )
+
+mcp_gateway_target_name = f"{stack_name}-mcp-gateway-target"
+mcp_gateway_target_description = (
+    f"Target for AgentCore-hosted MCP server for {stack_name} (src:{source_code_fingerprint[:12]})"
+)
+
+mcp_server_endpoint = pulumi.Output.all(
+    current_region, mcp_server.agent_runtime_arn
+).apply(
+    lambda args: f"https://bedrock-agentcore.{args[0].region}.amazonaws.com/runtimes/{quote(args[1], safe='')}/invocations?qualifier=DEFAULT"
+)
+
+manage_target_script = os.path.join(
+    os.path.dirname(__file__), "scripts", "manage_gateway_target.py"
+)
+
+mcp_gateway_target = command.local.Command(
+    "mcp_gateway_target",
+    create=pulumi.Output.all(
+        aws_region,
+        mcp_gateway.gateway_id,
+        mcp_server_endpoint,
+    ).apply(
+        lambda args: (
+            f"python3 {manage_target_script} --mode upsert --region {args[0]} "
+            f"--gateway-id {args[1]} --target-name {mcp_gateway_target_name} "
+            f"--description '{mcp_gateway_target_description}' "
+            f"--endpoint '{args[2]}'"
+        )
+    ),
+    update=pulumi.Output.all(
+        aws_region,
+        mcp_gateway.gateway_id,
+        mcp_server_endpoint,
+    ).apply(
+        lambda args: (
+            f"python3 {manage_target_script} --mode upsert --region {args[0]} "
+            f"--gateway-id {args[1]} --target-name {mcp_gateway_target_name} "
+            f"--description '{mcp_gateway_target_description}' "
+            f"--endpoint '{args[2]}'"
+        )
+    ),
+    delete=pulumi.Output.all(aws_region, mcp_gateway.gateway_id).apply(
+        lambda args: (
+            f"python3 {manage_target_script} --mode delete --region {args[0]} "
+            f"--gateway-id {args[1]} --target-name {mcp_gateway_target_name}"
+        )
+    ),
+    triggers=[
+        mcp_gateway.gateway_id,
+        mcp_server_endpoint,
+        mcp_gateway_target_name,
+        mcp_gateway_target_description,
+        aws_region,
+        source_code_fingerprint,
+    ],
+    opts=pulumi.ResourceOptions(
+        depends_on=[mcp_gateway, mcp_server], delete_before_replace=True
+    ),
+)
+
+gateway_target_id_output = mcp_gateway_target.stdout.apply(lambda s: s.strip())
+
+# ============================================================================
+# Cedar Policy Engine - Tool-level access control via default-deny Cedar policy
+# ============================================================================
+
+cedar_engine_name = f"{stack_name}-policy-engine"
+cedar_policy_name = f"{stack_name}-cedar-policy"
+cedar_policy_script = os.path.join(
+    os.path.dirname(__file__), "scripts", "manage_cedar_policy.py"
+)
+
+cedar_discovery_url = pulumi.Output.all(current_region, mcp_user_pool.id).apply(
+    lambda args: f"https://cognito-idp.{args[0].region}.amazonaws.com/{args[1]}/.well-known/openid-configuration"
+)
+
+cedar_policy = command.local.Command(
+    "cedar_policy",
+    create=pulumi.Output.all(
+        aws_region,
+        mcp_gateway.gateway_id,
+        agent_execution.arn,
+        cedar_discovery_url,
+        mcp_client.id,
+        mcp_gateway.gateway_arn,
+    ).apply(
+        lambda args: (
+            f"python3 {cedar_policy_script} --mode upsert --region {args[0]} "
+            f"--gateway-id {args[1]} --gateway-name {stack_name}-mcp-gateway "
+            f"--gateway-role-arn {args[2]} --discovery-url {args[3]} "
+            f"--allowed-clients {args[4]} --target-name {mcp_gateway_target_name} "
+            f"--gateway-arn {args[5]} --engine-name {cedar_engine_name} "
+            f"--policy-name {cedar_policy_name} "
+            f"--engine-description 'Cedar policy engine for {stack_name}' "
+            f"--policy-description 'Allow add_numbers and greet_user; deny multiply_numbers'"
+        )
+    ),
+    update=pulumi.Output.all(
+        aws_region,
+        mcp_gateway.gateway_id,
+        agent_execution.arn,
+        cedar_discovery_url,
+        mcp_client.id,
+        mcp_gateway.gateway_arn,
+    ).apply(
+        lambda args: (
+            f"python3 {cedar_policy_script} --mode upsert --region {args[0]} "
+            f"--gateway-id {args[1]} --gateway-name {stack_name}-mcp-gateway "
+            f"--gateway-role-arn {args[2]} --discovery-url {args[3]} "
+            f"--allowed-clients {args[4]} --target-name {mcp_gateway_target_name} "
+            f"--gateway-arn {args[5]} --engine-name {cedar_engine_name} "
+            f"--policy-name {cedar_policy_name} "
+            f"--engine-description 'Cedar policy engine for {stack_name}' "
+            f"--policy-description 'Allow add_numbers and greet_user; deny multiply_numbers'"
+        )
+    ),
+    delete=pulumi.Output.all(
+        aws_region,
+        mcp_gateway.gateway_id,
+        agent_execution.arn,
+        cedar_discovery_url,
+        mcp_client.id,
+    ).apply(
+        lambda args: (
+            f"python3 {cedar_policy_script} --mode delete --region {args[0]} "
+            f"--gateway-id {args[1]} --gateway-name {stack_name}-mcp-gateway "
+            f"--gateway-role-arn {args[2]} --discovery-url {args[3]} "
+            f"--allowed-clients {args[4]} --engine-name {cedar_engine_name} "
+            f"--policy-name {cedar_policy_name}"
+        )
+    ),
+    triggers=[
+        mcp_gateway.gateway_id,
+        mcp_gateway.gateway_arn,
+        mcp_gateway_target_name,
+        cedar_engine_name,
+        cedar_policy_name,
+        aws_region,
+    ],
+    opts=pulumi.ResourceOptions(depends_on=[mcp_gateway_target]),
+)
+
+policy_engine_id_output = cedar_policy.stdout.apply(lambda s: s.strip())
 
 # ============================================================================
 # Outputs
@@ -761,3 +925,5 @@ pulumi.export(
 pulumi.export("gatewayId", mcp_gateway.gateway_id)
 pulumi.export("gatewayArn", mcp_gateway.gateway_arn)
 pulumi.export("gatewayUrl", mcp_gateway.gateway_url)
+pulumi.export("gatewayTargetId", gateway_target_id_output)
+pulumi.export("policyEngineId", policy_engine_id_output)

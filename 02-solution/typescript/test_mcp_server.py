@@ -11,6 +11,16 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 
+def _format_exception_details(exc, level=0):
+    indent = "  " * level
+    lines = [f"{indent}- {type(exc).__name__}: {exc}"]
+    # Python 3.11+ ExceptionGroup support
+    if isinstance(exc, BaseExceptionGroup):
+        for sub_exc in exc.exceptions:
+            lines.extend(_format_exception_details(sub_exc, level + 1))
+    return lines
+
+
 async def test_mcp_server(gateway_url, bearer_token):
     """Test the deployed MCP server through the AgentCore Gateway."""
 
@@ -78,7 +88,9 @@ async def test_mcp_server(gateway_url, bearer_token):
                 print("\n✅ MCP tool testing completed!")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print("❌ Error while testing MCP tools:")
+        for line in _format_exception_details(e):
+            print(line)
         sys.exit(1)
 
 

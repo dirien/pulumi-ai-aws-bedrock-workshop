@@ -1,5 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
+import * as command from "@pulumi/command";
 import { createHash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
@@ -573,6 +574,23 @@ const buildspecFingerprint = createHash("sha256")
   .update(buildspecContent)
   .digest("hex");
 
+// Hash all files in mcp-server-code/ to detect source changes
+function hashDirectory(dir: string): string {
+  const hash = createHash("sha256");
+  const files = fs.readdirSync(dir, { recursive: true }) as string[];
+  for (const file of files.sort()) {
+    const filePath = path.join(dir, file);
+    if (fs.statSync(filePath).isFile()) {
+      hash.update(fs.readFileSync(filePath));
+    }
+  }
+  return hash.digest("hex");
+}
+
+const sourceCodeFingerprint = hashDirectory(
+  path.resolve(__dirname, "mcp-server-code"),
+);
+
 const agentImage = new aws.codebuild.Project("agent_image", {
   name: agentImageProjectName,
   description: `Build MCP server Docker image for ${stackName}`,
@@ -649,6 +667,7 @@ const triggerBuild = new aws.lambda.Invocation(
       sourceVersion: agentSourceObject.versionId,
       imageTag,
       buildspecSha256: buildspecFingerprint,
+      sourceCodeSha256: sourceCodeFingerprint,
     },
   },
   {
@@ -721,6 +740,7 @@ const mcpGateway = new aws.bedrock.AgentcoreGateway("mcp_gateway", {
   authorizerConfiguration: {
     customJwtAuthorizer: {
       allowedClients: [mcpClient.id],
+      allowedScopes: ["aws.cognito.signin.user.admin"],
       discoveryUrl: pulumi
         .all([currentRegion, mcpUserPool.id])
         .apply(
@@ -734,6 +754,79 @@ const mcpGateway = new aws.bedrock.AgentcoreGateway("mcp_gateway", {
     Module: "Gateway",
   },
 });
+
+// ============================================================================
+// AgentCore Gateway Target - Points Gateway to the MCP Server Runtime
+// ============================================================================
+
+const mcpGatewayTargetName = `${stackName}-mcp-gateway-target`;
+const mcpGatewayTargetDescription =
+  `Target for AgentCore-hosted MCP server for ${stackName} (src:${sourceCodeFingerprint.slice(0, 12)})`;
+
+const mcpServerEndpoint = pulumi
+  .all([currentRegion, mcpServer.agentRuntimeArn])
+  .apply(
+    ([region, arn]) =>
+      `https://bedrock-agentcore.${region.region}.amazonaws.com/runtimes/${encodeURIComponent(arn)}/invocations?qualifier=DEFAULT`,
+  );
+
+const mcpGatewayTarget = new command.local.Command(
+  "mcp_gateway_target",
+  {
+    create: pulumi.interpolate`python3 ${path.resolve(__dirname, "scripts/manage_gateway_target.py")} --mode upsert --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --target-name ${mcpGatewayTargetName} --description '${mcpGatewayTargetDescription}' --endpoint '${mcpServerEndpoint}'`,
+    update: pulumi.interpolate`python3 ${path.resolve(__dirname, "scripts/manage_gateway_target.py")} --mode upsert --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --target-name ${mcpGatewayTargetName} --description '${mcpGatewayTargetDescription}' --endpoint '${mcpServerEndpoint}'`,
+    delete: pulumi.interpolate`python3 ${path.resolve(__dirname, "scripts/manage_gateway_target.py")} --mode delete --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --target-name ${mcpGatewayTargetName}`,
+    triggers: [
+      mcpGateway.gatewayId,
+      mcpServerEndpoint,
+      mcpGatewayTargetName,
+      mcpGatewayTargetDescription,
+      awsRegion,
+      sourceCodeFingerprint,
+    ],
+  },
+  { dependsOn: [mcpGateway, mcpServer], deleteBeforeReplace: true },
+);
+
+const gatewayTargetIdOutput = mcpGatewayTarget.stdout.apply((s) => s.trim());
+
+// ============================================================================
+// Cedar Policy Engine - Tool-level access control via default-deny Cedar policy
+// ============================================================================
+
+const cedarEngineName = `${stackName}-policy-engine`;
+const cedarPolicyName = `${stackName}-cedar-policy`;
+const cedarPolicyScript = path.resolve(
+  __dirname,
+  "scripts/manage_cedar_policy.py",
+);
+
+const cedarDiscoveryUrl = pulumi
+  .all([currentRegion, mcpUserPool.id])
+  .apply(
+    ([region, userPoolId]) =>
+      `https://cognito-idp.${region.region}.amazonaws.com/${userPoolId}/.well-known/openid-configuration`,
+  );
+
+const cedarPolicy = new command.local.Command(
+  "cedar_policy",
+  {
+    create: pulumi.interpolate`python3 ${cedarPolicyScript} --mode upsert --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --target-name ${mcpGatewayTargetName} --gateway-arn ${mcpGateway.gatewayArn} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName} --engine-description 'Cedar policy engine for ${stackName}' --policy-description 'Allow add_numbers and greet_user; deny multiply_numbers'`,
+    update: pulumi.interpolate`python3 ${cedarPolicyScript} --mode upsert --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --target-name ${mcpGatewayTargetName} --gateway-arn ${mcpGateway.gatewayArn} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName} --engine-description 'Cedar policy engine for ${stackName}' --policy-description 'Allow add_numbers and greet_user; deny multiply_numbers'`,
+    delete: pulumi.interpolate`python3 ${cedarPolicyScript} --mode delete --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName}`,
+    triggers: [
+      mcpGateway.gatewayId,
+      mcpGateway.gatewayArn,
+      mcpGatewayTargetName,
+      cedarEngineName,
+      cedarPolicyName,
+      awsRegion,
+    ],
+  },
+  { dependsOn: [mcpGatewayTarget] },
+);
+
+const policyEngineIdOutput = cedarPolicy.stdout.apply((s) => s.trim());
 
 // ============================================================================
 // Outputs
@@ -770,3 +863,5 @@ export const getTokenCommand = pulumi
 export const gatewayId = mcpGateway.gatewayId;
 export const gatewayArn = mcpGateway.gatewayArn;
 export const gatewayUrl = mcpGateway.gatewayUrl;
+export const gatewayTargetId = gatewayTargetIdOutput;
+export const policyEngineId = policyEngineIdOutput;
