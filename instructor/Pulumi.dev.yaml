@@ -1,4 +1,2 @@
 environment:
   - aicamp/workshop-aws-oidc
-config:
-  instructor:workshopName: austing-testrun
