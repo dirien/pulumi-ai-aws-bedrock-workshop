@@ -873,7 +873,8 @@ cedar_policy = command.local.Command(
             f"python3 {cedar_policy_script} --mode delete --region {args[0]} "
             f"--gateway-id {args[1]} --gateway-name {stack_name}-mcp-gateway "
             f"--gateway-role-arn {args[2]} --discovery-url {args[3]} "
-            f"--allowed-clients {args[4]} --engine-name {cedar_engine_name} "
+            f"--allowed-clients {args[4]} --target-name {mcp_gateway_target_name} "
+            f"--engine-name {cedar_engine_name} "
             f"--policy-name {cedar_policy_name}"
         )
     ),

@@ -2758,7 +2758,7 @@ def main():
   parser.add_argument("--gateway-role-arn", required=True)
   parser.add_argument("--discovery-url", required=True)
   parser.add_argument("--allowed-clients", required=True)
-  parser.add_argument("--target-name", required=True)
+  parser.add_argument("--target-name", default="")
   parser.add_argument("--gateway-arn", default="")
   parser.add_argument("--engine-name", required=True)
   parser.add_argument("--policy-name", required=True)
@@ -2770,6 +2770,8 @@ def main():
   if args.mode == "upsert":
     if not args.gateway_arn:
       raise ValueError("--gateway-arn is required in upsert mode")
+    if not args.target_name:
+      raise ValueError("--target-name is required in upsert mode")
     _upsert(
       client,
       args.gateway_id,
@@ -2830,7 +2832,7 @@ const cedarPolicy = new command.local.Command(
   {
   create: pulumi.interpolate`python3 ${cedarPolicyScript} --mode upsert --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --target-name ${mcpGatewayTargetName} --gateway-arn ${mcpGateway.gatewayArn} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName} --engine-description 'Cedar policy engine for ${stackName}' --policy-description 'Allow add_numbers and greet_user; deny multiply_numbers'`,
   update: pulumi.interpolate`python3 ${cedarPolicyScript} --mode upsert --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --target-name ${mcpGatewayTargetName} --gateway-arn ${mcpGateway.gatewayArn} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName} --engine-description 'Cedar policy engine for ${stackName}' --policy-description 'Allow add_numbers and greet_user; deny multiply_numbers'`,
-  delete: pulumi.interpolate`python3 ${cedarPolicyScript} --mode delete --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName}`,
+  delete: pulumi.interpolate`python3 ${cedarPolicyScript} --mode delete --region ${awsRegion} --gateway-id ${mcpGateway.gatewayId} --gateway-name ${stackName}-mcp-gateway --gateway-role-arn ${agentExecution.arn} --discovery-url ${cedarDiscoveryUrl} --allowed-clients ${mcpClient.id} --target-name ${mcpGatewayTargetName} --engine-name ${cedarEngineName} --policy-name ${cedarPolicyName}`,
   triggers: [
     mcpGateway.gatewayId,
     mcpGateway.gatewayArn,
@@ -2912,7 +2914,8 @@ cedar_policy = command.local.Command(
       f"python3 {cedar_policy_script} --mode delete --region {args[0]} "
       f"--gateway-id {args[1]} --gateway-name {stack_name}-mcp-gateway "
       f"--gateway-role-arn {args[2]} --discovery-url {args[3]} "
-      f"--allowed-clients {args[4]} --engine-name {cedar_engine_name} "
+      f"--allowed-clients {args[4]} --target-name {mcp_gateway_target_name} "
+      f"--engine-name {cedar_engine_name} "
       f"--policy-name {cedar_policy_name}"
     )
   ),

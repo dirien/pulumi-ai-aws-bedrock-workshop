@@ -249,7 +249,7 @@ def main():
     parser.add_argument("--gateway-role-arn", required=True)
     parser.add_argument("--discovery-url", required=True)
     parser.add_argument("--allowed-clients", required=True, help="Comma-separated client IDs")
-    parser.add_argument("--target-name", required=True, help="Gateway target name (tool prefix)")
+    parser.add_argument("--target-name", default="", help="Gateway target name (tool prefix)")
     parser.add_argument("--gateway-arn", default="")
     parser.add_argument("--engine-name", required=True)
     parser.add_argument("--policy-name", required=True)
@@ -266,6 +266,8 @@ def main():
     if args.mode == "upsert":
         if not args.gateway_arn:
             raise ValueError("--gateway-arn is required in upsert mode")
+        if not args.target_name:
+            raise ValueError("--target-name is required in upsert mode")
         _upsert(
             client,
             args.gateway_id,
