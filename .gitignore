@@ -13,4 +13,3 @@ __pycache__/
 .venv/
 uv.lock
 Gemfile.lock
-02-mcp-server/
