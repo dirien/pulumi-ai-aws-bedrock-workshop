@@ -12,7 +12,10 @@
   },
   "dependencies": {
     "@pulumi/aws": "^7.24.0",
+    "@pulumi/aws-native": "^1.63.0",
+    "@pulumi/command": "^1.0.0",
     "@pulumi/pulumi": "^3.0.0",
+    "@pulumiverse/time": "^0.1.0",
     "typescript": "^4.0.0"
   }
 }

@@ -11,6 +11,7 @@
 - How to deploy an AgentCore Gateway that secures your MCP server with JWT tokens from Cognito
 - How to use Pulumi secrets for sensitive config
 - How AgentCore's Policy Engine enforces fine-grained access control using Cedar policies
+- How to combine `pulumi-aws` and `pulumi-aws-native` in one program when a resource only ships in one of them
 
 ## Key concepts
 
@@ -105,14 +106,14 @@ environment:
   - aws-bedrock-workshop/dev
 ```
 
-The `pulumi new` template already includes the AWS provider. Pin it to the version this workshop uses:
+The `pulumi new` template already includes the AWS classic provider. This module also uses the AWS Native (CloudControl-backed) provider for the Gateway, the Command provider for one boto3 fallback, and the community `pulumiverse-time` provider for an IAM-eventual-consistency wait we'll need in the Cedar chapter (more on each of these as they come up). Install all four up front so the solution code in `02-solution/` runs as-is:
 
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
 
 ```bash
-npm install @pulumi/aws@7.23.0
+npm install @pulumi/aws@7.23.0 @pulumi/aws-native@1.63.0 @pulumi/command@1.0.0 @pulumiverse/time@0.1.0
 ```
 
 </div>
@@ -120,12 +121,16 @@ npm install @pulumi/aws@7.23.0
 <div class="lang-tab" data-lang="python" markdown="1">
 
 ```bash
-uv add pulumi-aws>=7.23.0
+uv add 'pulumi-aws>=7.23.0' 'pulumi-aws-native>=1.63.0' 'pulumi-command>=1.0.0' 'pulumiverse-time>=0.1.0'
 ```
 
 </div>
 
 </div>
+
+**Why two AWS providers?** The classic `pulumi-aws` provider covers most of the resources here (Cognito, ECR, S3, IAM, Lambda, CodeBuild, AgentCore Runtime). The `policyEngineConfiguration` field on the Gateway and the Cedar Policy resources we'll add later only exist in `pulumi-aws-native`, which generates resources from the AWS CloudFormation registry. Pulumi happily mixes both in a single program; they share AWS credentials from your ESC environment.
+
+`pulumiverse-time` is a community provider that mirrors Terraform's `hashicorp/time`. We use its `time.Sleep` resource in the Cedar chapter to ride out IAM propagation. If you skip the Cedar chapter entirely it's a harmless extra dependency.
 
 Set your unique stack name and store the test password in the shared ESC environment:
 
@@ -1979,11 +1984,13 @@ mcp_server = aws.bedrock.AgentcoreAgentRuntime(
 
 ### AgentCore Gateway
 
-The [Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html) is the front door for clients. It validates JWT tokens from Cognito before forwarding requests to the MCP server. This separation means your MCP server code never has to deal with auth - the Gateway handles it. It also enables Cedar policy enforcement (covered later).
+The [Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html) is the front door for clients. It validates JWT tokens from Cognito before forwarding requests to the MCP server. Your MCP server code never has to deal with auth - the Gateway handles it.
+
+We use `pulumi-aws-native` here because the classic provider doesn't yet expose `policyEngineConfiguration`, which the Cedar chapter will need. Declaring the Gateway with the native provider now means we can attach the Policy Engine in place later without a destructive recreate.
 
 <details>
 <summary><strong>Want to know more?</strong> - Pulumi Registry</summary>
-<p><a href="https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcoregateway/">aws.bedrock.AgentcoreGateway</a></p>
+<p><a href="https://www.pulumi.com/registry/packages/aws-native/api-docs/bedrockagentcore/gateway/">aws-native.bedrockagentcore.Gateway</a></p>
 </details>
 
 <div class="lang-tabs" markdown="1">
@@ -1991,28 +1998,33 @@ The [Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gate
 <div class="lang-tab" data-lang="typescript" markdown="1">
 
 ```typescript
-const mcpGateway = new aws.bedrock.AgentcoreGateway("mcp_gateway", {
-  name: `${stackName}-mcp-gateway`,
-  description: `MCP Gateway with JWT auth for ${stackName}`,
-  protocolType: "MCP",
-  roleArn: agentExecution.arn,
-  authorizerType: "CUSTOM_JWT",
-  authorizerConfiguration: {
-    customJwtAuthorizer: {
-      allowedClients: [mcpClient.id],
-      discoveryUrl: pulumi
-        .all([currentRegion, mcpUserPool.id])
-        .apply(
-          ([region, userPoolId]) =>
-            `https://cognito-idp.${region.region}.amazonaws.com/${userPoolId}/.well-known/openid-configuration`,
-        ),
+const cognitoDiscoveryUrlInput = pulumi
+  .all([currentRegion, mcpUserPool.id])
+  .apply(
+    ([region, userPoolId]) =>
+      `https://cognito-idp.${region.region}.amazonaws.com/${userPoolId}/.well-known/openid-configuration`,
+  );
+
+const mcpGateway = new awsNative.bedrockagentcore.Gateway(
+  "mcp_gateway",
+  {
+    name: `${stackName}-mcp-gateway`,
+    description: `MCP Gateway with JWT auth for ${stackName}`,
+    protocolType: awsNative.bedrockagentcore.GatewayProtocolType.Mcp,
+    roleArn: agentExecution.arn,
+    authorizerType: awsNative.bedrockagentcore.GatewayAuthorizerType.CustomJwt,
+    authorizerConfiguration: {
+      customJwtAuthorizer: {
+        allowedClients: [mcpClient.id],
+        discoveryUrl: cognitoDiscoveryUrlInput,
+      },
+    },
+    tags: {
+      Name: `${stackName}-mcp-gateway`,
+      Module: "Gateway",
     },
   },
-  tags: {
-    Name: `${stackName}-mcp-gateway`,
-    Module: "Gateway",
-  },
-});
+);
 ```
 
 </div>
@@ -2020,22 +2032,22 @@ const mcpGateway = new aws.bedrock.AgentcoreGateway("mcp_gateway", {
 <div class="lang-tab" data-lang="python" markdown="1">
 
 ```python
-mcp_gateway = aws.bedrock.AgentcoreGateway(
+cognito_discovery_url = pulumi.Output.all(current_region, mcp_user_pool.id).apply(
+    lambda args: f"https://cognito-idp.{args[0].region}.amazonaws.com/{args[1]}/.well-known/openid-configuration"
+)
+
+mcp_gateway = aws_native.bedrockagentcore.Gateway(
     "mcp_gateway",
     name=f"{stack_name}-mcp-gateway",
     description=f"MCP Gateway with JWT auth for {stack_name}",
-    protocol_type="MCP",
+    protocol_type=aws_native.bedrockagentcore.GatewayProtocolType.MCP,
     role_arn=agent_execution.arn,
-    authorizer_type="CUSTOM_JWT",
+    authorizer_type=aws_native.bedrockagentcore.GatewayAuthorizerType.CUSTOM_JWT,
     authorizer_configuration={
         "custom_jwt_authorizer": {
             "allowed_clients": [mcp_client.id],
-            "discovery_url": pulumi.Output.all(
-                current_region, mcp_user_pool.id
-            ).apply(
-                lambda args: f"https://cognito-idp.{args[0].region}.amazonaws.com/{args[1]}/.well-known/openid-configuration"
-            ),
-        }
+            "discovery_url": cognito_discovery_url,
+        },
     },
     tags={
         "Name": f"{stack_name}-mcp-gateway",
@@ -2049,6 +2061,181 @@ mcp_gateway = aws.bedrock.AgentcoreGateway(
 </div>
 
 The `authorizerConfiguration.customJwtAuthorizer` ties the Gateway to your Cognito User Pool. `discoveryUrl` is the OIDC discovery endpoint and `allowedClients` restricts access to tokens issued for your app client ID. The Gateway exposes a URL (`gatewayUrl`) that clients use instead of calling the runtime directly.
+
+### Gateway Target
+
+The Gateway also needs a **Target** that points it at the MCP runtime's invocation endpoint. AgentCore-hosted MCP runtimes need a `GATEWAY_IAM_ROLE` credential provider with an `iamCredentialProvider` sub-object so the Gateway can sign requests to the runtime with SigV4.
+
+That sub-object is the one piece this module can't yet declare with a typed Pulumi resource: the published CloudFormation schema for `AWS::BedrockAgentCore::GatewayTarget` doesn't list `IamCredentialProvider` in its credential-provider union. The underlying AgentCore API accepts the field, and a direct `aws cloudcontrol create-resource` call goes through, but `pulumi-aws-native`'s typed bridge filters the unknown variant out before it reaches CloudControl. Until the CFN schema gains the variant, we shell out to boto3 from a `command.local.Command` - the rest of the program stays declarative.
+
+<details>
+<summary><strong>Want to know more?</strong> - Pulumi Registry</summary>
+<p><a href="https://www.pulumi.com/registry/packages/command/api-docs/local/command/">command.local.Command</a></p>
+</details>
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+const mcpTargetName = "mcp-server-target";
+
+const runtimeInvocationEndpoint = pulumi
+  .all([currentRegion, mcpServer.agentRuntimeArn])
+  .apply(
+    ([region, arn]) =>
+      `https://bedrock-agentcore.${region.region}.amazonaws.com/runtimes/${encodeURIComponent(arn)}/invocations?qualifier=DEFAULT`,
+  );
+
+const gatewayTargetCreateScript = `python3 <<'PYEOF'
+import boto3, os, sys, time
+client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
+target_id = None
+for t in client.list_gateway_targets(gatewayIdentifier=os.environ['GATEWAY_ID']).get('items', []):
+    if t['name'] == os.environ['TARGET_NAME']:
+        target_id = t['targetId']
+        break
+if target_id is None:
+    r = client.create_gateway_target(
+        gatewayIdentifier=os.environ['GATEWAY_ID'],
+        name=os.environ['TARGET_NAME'],
+        description='Target for AgentCore-hosted MCP server',
+        targetConfiguration={'mcp': {'mcpServer': {'endpoint': os.environ['ENDPOINT']}}},
+        credentialProviderConfigurations=[{
+            'credentialProviderType': 'GATEWAY_IAM_ROLE',
+            'credentialProvider': {'iamCredentialProvider': {'service': 'bedrock-agentcore'}},
+        }],
+    )
+    target_id = r['targetId']
+for _ in range(60):
+    g = client.get_gateway_target(gatewayIdentifier=os.environ['GATEWAY_ID'], targetId=target_id)
+    status = g.get('status')
+    if status == 'READY':
+        break
+    if status in ('FAILED', 'DELETING'):
+        sys.stderr.write(f'target failed: status={status} reasons={g.get("statusReasons")}\\n')
+        sys.exit(1)
+    time.sleep(5)
+print(target_id)
+PYEOF
+`;
+
+const gatewayTargetDeleteScript = `python3 <<'PYEOF'
+import boto3, os
+client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
+try:
+    targets = client.list_gateway_targets(gatewayIdentifier=os.environ['GATEWAY_ID']).get('items', [])
+except client.exceptions.ResourceNotFoundException:
+    targets = []
+for t in targets:
+    if t['name'] == os.environ['TARGET_NAME']:
+        client.delete_gateway_target(gatewayIdentifier=os.environ['GATEWAY_ID'], targetId=t['targetId'])
+        break
+PYEOF
+`;
+
+const mcpGatewayTarget = new command.local.Command("mcp_gateway_target", {
+  create: gatewayTargetCreateScript,
+  delete: gatewayTargetDeleteScript,
+  environment: {
+    REGION: currentRegion.apply((r) => r.region),
+    GATEWAY_ID: mcpGateway.gatewayIdentifier,
+    TARGET_NAME: mcpTargetName,
+    ENDPOINT: runtimeInvocationEndpoint,
+  },
+  triggers: [mcpGateway.gatewayIdentifier, runtimeInvocationEndpoint],
+});
+
+const mcpGatewayTargetId = mcpGatewayTarget.stdout.apply((s) => s.trim());
+```
+
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
+
+```python
+mcp_target_name = "mcp-server-target"
+
+runtime_invocation_endpoint = pulumi.Output.all(
+    current_region, mcp_server.agent_runtime_arn
+).apply(
+    lambda args: (
+        f"https://bedrock-agentcore.{args[0].region}.amazonaws.com/runtimes/"
+        f"{urllib.parse.quote(args[1], safe='')}/invocations?qualifier=DEFAULT"
+    )
+)
+
+_GATEWAY_TARGET_CREATE_SCRIPT = r"""python3 <<'PYEOF'
+import boto3, os, sys, time
+client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
+target_id = None
+for t in client.list_gateway_targets(gatewayIdentifier=os.environ['GATEWAY_ID']).get('items', []):
+    if t['name'] == os.environ['TARGET_NAME']:
+        target_id = t['targetId']
+        break
+if target_id is None:
+    r = client.create_gateway_target(
+        gatewayIdentifier=os.environ['GATEWAY_ID'],
+        name=os.environ['TARGET_NAME'],
+        description='Target for AgentCore-hosted MCP server',
+        targetConfiguration={'mcp': {'mcpServer': {'endpoint': os.environ['ENDPOINT']}}},
+        credentialProviderConfigurations=[{
+            'credentialProviderType': 'GATEWAY_IAM_ROLE',
+            'credentialProvider': {'iamCredentialProvider': {'service': 'bedrock-agentcore'}},
+        }],
+    )
+    target_id = r['targetId']
+for _ in range(60):
+    g = client.get_gateway_target(gatewayIdentifier=os.environ['GATEWAY_ID'], targetId=target_id)
+    status = g.get('status')
+    if status == 'READY':
+        break
+    if status in ('FAILED', 'DELETING'):
+        sys.stderr.write(f'target failed: status={status} reasons={g.get("statusReasons")}\n')
+        sys.exit(1)
+    time.sleep(5)
+print(target_id)
+PYEOF
+"""
+
+_GATEWAY_TARGET_DELETE_SCRIPT = r"""python3 <<'PYEOF'
+import boto3, os
+client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
+try:
+    targets = client.list_gateway_targets(gatewayIdentifier=os.environ['GATEWAY_ID']).get('items', [])
+except client.exceptions.ResourceNotFoundException:
+    targets = []
+for t in targets:
+    if t['name'] == os.environ['TARGET_NAME']:
+        client.delete_gateway_target(gatewayIdentifier=os.environ['GATEWAY_ID'], targetId=t['targetId'])
+        break
+PYEOF
+"""
+
+mcp_gateway_target = command.local.Command(
+    "mcp_gateway_target",
+    create=_GATEWAY_TARGET_CREATE_SCRIPT,
+    delete=_GATEWAY_TARGET_DELETE_SCRIPT,
+    environment={
+        "REGION": current_region.apply(lambda r: r.region),
+        "GATEWAY_ID": mcp_gateway.gateway_identifier,
+        "TARGET_NAME": mcp_target_name,
+        "ENDPOINT": runtime_invocation_endpoint,
+    },
+    triggers=[
+        mcp_gateway.gateway_identifier,
+        runtime_invocation_endpoint,
+    ],
+)
+
+mcp_gateway_target_id = mcp_gateway_target.stdout.apply(lambda s: s.strip())
+```
+
+</div>
+
+</div>
+
+The create script is idempotent (it looks up the target by name first) so reruns are safe, and it polls until status is `READY` before returning. The Cedar chapter at the end of this module relies on this readiness check so the Policy Engine knows the target's tool actions before any Cedar policy is evaluated against them.
 
 ### Outputs
 
@@ -2085,9 +2272,10 @@ export const getTokenCommand = pulumi
     ([clientId, region, password]) =>
       `python get_token.py ${clientId} ${testUserName} '${password}' ${region.region}`,
   );
-export const gatewayId = mcpGateway.gatewayId;
+export const gatewayId = mcpGateway.gatewayIdentifier;
 export const gatewayArn = mcpGateway.gatewayArn;
 export const gatewayUrl = mcpGateway.gatewayUrl;
+export const gatewayTargetId = mcpGatewayTargetId;
 ```
 
 </div>
@@ -2123,9 +2311,10 @@ pulumi.export(
         lambda args: f"python get_token.py {args[0]} {test_user_name} '{args[2]}' {args[1].region}"
     ),
 )
-pulumi.export("gatewayId", mcp_gateway.gateway_id)
+pulumi.export("gatewayId", mcp_gateway.gateway_identifier)
 pulumi.export("gatewayArn", mcp_gateway.gateway_arn)
 pulumi.export("gatewayUrl", mcp_gateway.gateway_url)
+pulumi.export("gatewayTargetId", mcp_gateway_target_id)
 ```
 
 </div>
@@ -2140,36 +2329,9 @@ pulumi.export("gatewayUrl", mcp_gateway.gateway_url)
 pulumi up
 ```
 
-Same 5-10 minute wait for CodeBuild. At the end, Pulumi outputs the runtime ARN, gateway URL, Cognito client ID, and a handy `getTokenCommand`.
+Same 5-10 minute wait for CodeBuild. At the end, Pulumi outputs the runtime ARN, gateway URL, Cognito client ID, the Gateway Target ID, and a handy `getTokenCommand`. The Gateway Target is already in place - no follow-up CLI calls needed.
 
-## Step 8: Connect the Gateway to the MCP runtime
-
-The Gateway is deployed, but it doesn't know about the MCP server yet. You need to create a **Gateway Target** that points the Gateway to the runtime's invocation endpoint. This step uses the AWS SDK because the Pulumi providers don't yet support the `iamCredentialProvider` field required for AgentCore runtime targets.
-
-```bash
-pulumi env run aws-bedrock-workshop/dev -- python3 -c "
-import boto3, json, urllib.parse
-client = boto3.client('bedrock-agentcore-control', region_name='$(pulumi stack output cognitoDiscoveryUrl | grep -oP \"(?<=cognito-idp\.)[^.]+\")')
-agent_arn = '$(pulumi stack output agentRuntimeArn)'
-encoded_arn = urllib.parse.quote(agent_arn, safe='')
-endpoint = f'https://bedrock-agentcore.us-east-1.amazonaws.com/runtimes/{encoded_arn}/invocations?qualifier=DEFAULT'
-r = client.create_gateway_target(
-    gatewayIdentifier='$(pulumi stack output gatewayId)',
-    name='mcp-server-target',
-    description='Target for AgentCore-hosted MCP server',
-    targetConfiguration={'mcp': {'mcpServer': {'endpoint': endpoint}}},
-    credentialProviderConfigurations=[{
-        'credentialProviderType': 'GATEWAY_IAM_ROLE',
-        'credentialProvider': {'iamCredentialProvider': {'service': 'bedrock-agentcore'}}
-    }]
-)
-print(json.dumps({'targetId': r['targetId'], 'status': r['status']}, default=str))
-"
-```
-
-The `GATEWAY_IAM_ROLE` credential provider tells the Gateway to sign requests to the runtime using SigV4 with `service: "bedrock-agentcore"`. Wait about 20 seconds for the target status to become `READY`.
-
-## Step 9: Get a JWT token and test
+## Step 8: Get a JWT token and test
 
 First, get a token from Cognito. Pulumi outputs a ready-to-run command:
 
@@ -2190,13 +2352,13 @@ export GATEWAY_URL=$(pulumi stack output gatewayUrl)
 python test_mcp_server.py $GATEWAY_URL $JWT_TOKEN
 ```
 
-You should see the three tools listed (prefixed with the target name) and their results:
+You should see all three tools listed (prefixed with the target name) and their results:
 
 - `mcp-server-target___add_numbers(5, 3)` returns `8`
 - `mcp-server-target___multiply_numbers(4, 7)` returns `28`
 - `mcp-server-target___greet_user('Alice')` returns `Hello, Alice! Nice to meet you.`
 
-Try calling without the token (or with a fake one) and you'll get an authorization error. The Gateway's JWT authorizer is doing its job.
+Try calling without the token (or with a fake one) and you'll get an authorization error. The Gateway's JWT authorizer is doing its job - any caller with a valid token can run any tool. The Cedar chapter below adds the second layer.
 
 ## Try it yourself
 
@@ -2213,17 +2375,9 @@ Redeploy with `pulumi up`, get a fresh token, and call your new tool with the te
 
 **Break the auth on purpose.** Grab a token, wait for it to expire (1 hour), and try again. Or tamper with the token by changing a character in the middle. See what error AgentCore returns. Understanding the failure modes helps when debugging real deployments.
 
-## Policy enforcement with Cedar
+## Adding Cedar policy enforcement
 
-Now that your MCP server is secured with JWT via the Gateway, let's add another layer: a **Policy Engine** that controls which tools each user can call.
-
-### What is the Policy Engine?
-
-The AgentCore [Policy Engine](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy.html) sits inside the Gateway. It evaluates every tool call against a set of [Cedar](https://www.cedarpolicy.com/) policies and decides whether to allow or deny the request. Cedar is an open-source policy language developed by AWS, originally used in Amazon Verified Permissions.
-
-The key idea is **default-deny**. If no policy explicitly permits a request, it's denied. You define what's allowed, and everything else is blocked.
-
-### How it works
+JWT auth gates *who* can call your tools. The next layer is *what* they can call. AgentCore's [Policy Engine](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/policy.html) sits inside the Gateway and evaluates every tool call against a set of [Cedar](https://www.cedarpolicy.com/) policies. Cedar is open-source, default-deny: a request is blocked unless a policy explicitly permits it.
 
 ```mermaid
 flowchart TD
@@ -2234,130 +2388,398 @@ flowchart TD
     C -->|DENY| F["Request blocked\nTool Execution Denied"]
 ```
 
-Policies have three components:
+A Cedar policy has three components:
 
-- **Principal**: Who is making the request (type `AgentCore::OAuthUser` for JWT-authenticated users)
-- **Action**: Which tool is being called (e.g., `AgentCore::Action::"mcp-server-target___add_numbers"`)
-- **Resource**: Which Gateway the request targets (e.g., `AgentCore::Gateway::"<GATEWAY_ARN>"`)
+- **Principal** - who is making the request. `AgentCore::OAuthUser` matches any JWT-authenticated user.
+- **Action** - which tool is being called, e.g. `AgentCore::Action::"mcp-server-target___add_numbers"`. The Gateway prefixes tool names with the target name and three underscores.
+- **Resource** - which Gateway the request targets, e.g. `AgentCore::Gateway::"<GATEWAY_ARN>"`.
 
-Note that the Gateway prefixes tool names with the target name and `___` (three underscores).
+We'll add three resources to lock the Gateway down: a Policy Engine, a small `time.Sleep` to let IAM catch up, and a Cedar Policy. Then we'll attach the Engine to the existing Gateway in `ENFORCE` mode.
 
-### Step 10: Create a Policy Engine
+### Step 9: Import the time provider
 
-Policy Engine and Policy resources are not yet available as Pulumi resources, so we use the AWS CLI via `pulumi env run`:
+[`pulumiverse-time`](https://github.com/pulumiverse/pulumi-time) was already installed in Step 1 alongside the other providers. Import it where you keep the rest of your imports - we'll use its `time.Sleep` resource in the next step. The Cedar `Policy` and `PolicyEngine` resources come from `pulumi-aws-native`, which is also already imported.
 
-```bash
-pulumi env run aws-bedrock-workshop/dev -- aws bedrock-agentcore-control create-policy-engine \
-  --name workshop_policy_engine \
-  --description "Policy engine for MCP workshop" \
-  --region us-east-1
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+import * as time from "@pulumiverse/time";
 ```
 
-Note the `policyEngineId` from the response. Wait a few seconds for the status to become `ACTIVE`.
+</div>
 
-### Step 11: Add a Cedar policy
+<div class="lang-tab" data-lang="python" markdown="1">
 
-Create a policy that allows `add_numbers` and `greet_user` but implicitly denies `multiply_numbers`. First, store your gateway ARN:
-
-```bash
-export GATEWAY_ARN=$(pulumi stack output gatewayArn)
-export POLICY_ENGINE_ID=<paste policyEngineId from previous step>
+```python
+import pulumiverse_time as time
 ```
 
-Create a JSON file with the Cedar policy statement:
+</div>
+
+</div>
+
+If you skipped ahead and didn't run the Step 1 install, do it now:
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
 
 ```bash
-cat > /tmp/cedar-policy.json << EOF
-{
-  "cedar": {
-    "statement": "permit(principal is AgentCore::OAuthUser, action in [AgentCore::Action::\"mcp-server-target___add_numbers\", AgentCore::Action::\"mcp-server-target___greet_user\"], resource == AgentCore::Gateway::\"${GATEWAY_ARN}\");"
-  }
-}
-EOF
+npm install @pulumiverse/time@0.1.0
 ```
 
-Then create the policy:
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
 
 ```bash
-pulumi env run aws-bedrock-workshop/dev -- aws bedrock-agentcore-control create-policy \
-  --policy-engine-id $POLICY_ENGINE_ID \
-  --name allow_add_and_greet \
-  --description "Allow add_numbers and greet_user only - deny multiply_numbers" \
-  --definition "file:///tmp/cedar-policy.json" \
-  --region us-east-1
+uv add 'pulumiverse-time>=0.1.0'
 ```
 
-This Cedar policy reads: "Allow any authenticated OAuth user to call `add_numbers` and `greet_user` on this specific Gateway." Since Cedar is default-deny, `multiply_numbers` is implicitly blocked.
+</div>
+
+</div>
+
+### Step 10: Create the Policy Engine
+
+The Policy Engine holds the Cedar policies. By itself it does nothing - the Gateway has to be told to use it.
+
+<details>
+<summary><strong>Want to know more?</strong> - Pulumi Registry</summary>
+<p><a href="https://www.pulumi.com/registry/packages/aws-native/api-docs/bedrockagentcore/policyengine/">aws-native.bedrockagentcore.PolicyEngine</a></p>
+</details>
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+const mcpPolicyEngine = new awsNative.bedrockagentcore.PolicyEngine(
+  "mcp_policy_engine",
+  {
+    name: `${stackName}_policy_engine`.replace(/-/g, "_"),
+    description: `Policy engine for ${stackName}`,
+    tags: [
+      { key: "Name", value: `${stackName}-policy-engine` },
+      { key: "Module", value: "PolicyEngine" },
+    ],
+  },
+);
+```
+
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
+
+```python
+mcp_policy_engine = aws_native.bedrockagentcore.PolicyEngine(
+    "mcp_policy_engine",
+    name=f"{stack_name}_policy_engine".replace("-", "_"),
+    description=f"Policy engine for {stack_name}",
+    tags=[
+        {"key": "Name", "value": f"{stack_name}-policy-engine"},
+        {"key": "Module", "value": "PolicyEngine"},
+    ],
+)
+```
+
+</div>
+
+</div>
+
+### Step 11: Add the IAM propagation guard
+
+When the Gateway attaches a Policy Engine, AgentCore validates that its IAM role can be assumed by the Gateway service. IAM is eventually consistent across AWS services, so on a fresh deploy that check sometimes fails on the first try - the role's trust policy hasn't propagated to STS yet.
+
+This is the same problem Terraform users solve with [`hashicorp/time`'s `time_sleep` resource](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep). The community-maintained [`pulumiverse-time` provider](https://github.com/pulumiverse/pulumi-time) gives us the same primitive in Pulumi. Thirty seconds is conservative; ten to fifteen usually does it.
+
+If you're walking through this module across multiple `pulumi up` runs (Chapter 1 first, Cedar second), the wait isn't strictly needed because IAM has had plenty of time to propagate between deploys. We add it anyway so the solution code in `02-solution/` works in a single deploy too.
+
+<details>
+<summary><strong>Want to know more?</strong> - Pulumi Registry</summary>
+<p><a href="https://www.pulumi.com/registry/packages/time/api-docs/sleep/">time.Sleep</a></p>
+</details>
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+const iamPropagationWait = new time.Sleep(
+  "iam_propagation_wait",
+  {
+    createDuration: "30s",
+    triggers: {
+      role_arn: agentExecution.arn,
+      managed_attachment: agentExecutionManaged.id,
+      inline_policy: agentExecutionRolePolicy.id,
+    },
+  },
+  {
+    dependsOn: [
+      agentExecution,
+      agentExecutionManaged,
+      agentExecutionRolePolicy,
+    ],
+  },
+);
+```
+
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
+
+```python
+iam_propagation_wait = time.Sleep(
+    "iam_propagation_wait",
+    create_duration="30s",
+    triggers={
+        "role_arn": agent_execution.arn,
+        "managed_attachment": agent_execution_managed.id,
+        "inline_policy": agent_execution_role_policy.id,
+    },
+    opts=pulumi.ResourceOptions(
+        depends_on=[
+            agent_execution,
+            agent_execution_managed,
+            agent_execution_role_policy,
+        ]
+    ),
+)
+```
+
+</div>
+
+</div>
 
 ### Step 12: Attach the Policy Engine to the Gateway
 
-Attach the policy engine to your Gateway in `ENFORCE` mode:
+Add `policyEngineConfiguration` to the existing Gateway resource and a `dependsOn` on the wait. Because the Gateway is already declared with `pulumi-aws-native`, this is an in-place update - no destroy/recreate.
 
-```bash
-export GATEWAY_ID=$(pulumi stack output gatewayId)
-export POLICY_ENGINE_ARN=<paste policyEngineArn from step 10>
+<div class="lang-tabs" markdown="1">
 
-pulumi env run aws-bedrock-workshop/dev -- python3 -c "
-import boto3
-client = boto3.client('bedrock-agentcore-control', region_name='us-east-1')
-client.update_gateway(
-    gatewayIdentifier='${GATEWAY_ID}',
-    name='$(pulumi stack output gatewayId | sed "s/-[^-]*$//")',
-    roleArn='$(pulumi stack output agentExecutionRoleArn)',
-    protocolType='MCP',
-    authorizerType='CUSTOM_JWT',
-    authorizerConfiguration={
-        'customJWTAuthorizer': {
-            'discoveryUrl': '$(pulumi stack output cognitoDiscoveryUrl)',
-            'allowedClients': ['$(pulumi stack output cognitoUserPoolClientId)']
-        }
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+const mcpGateway = new awsNative.bedrockagentcore.Gateway(
+  "mcp_gateway",
+  {
+    name: `${stackName}-mcp-gateway`,
+    description: `MCP Gateway with JWT auth for ${stackName}`,
+    protocolType: awsNative.bedrockagentcore.GatewayProtocolType.Mcp,
+    roleArn: agentExecution.arn,
+    authorizerType: awsNative.bedrockagentcore.GatewayAuthorizerType.CustomJwt,
+    authorizerConfiguration: {
+      customJwtAuthorizer: {
+        allowedClients: [mcpClient.id],
+        discoveryUrl: cognitoDiscoveryUrlInput,
+      },
     },
-    policyEngineConfiguration={
-        'arn': '${POLICY_ENGINE_ARN}',
-        'mode': 'ENFORCE'
-    }
-)
-print('Policy engine attached in ENFORCE mode')
-"
+    policyEngineConfiguration: {
+      arn: mcpPolicyEngine.policyEngineArn,
+      mode: awsNative.bedrockagentcore.GatewayPolicyEngineMode.Enforce,
+    },
+    tags: {
+      Name: `${stackName}-mcp-gateway`,
+      Module: "Gateway",
+    },
+  },
+  {
+    dependsOn: [iamPropagationWait, mcpPolicyEngine],
+  },
+);
 ```
 
-Wait about 15 seconds for the Gateway to update.
+</div>
 
-### Step 13: Test policy enforcement
+<div class="lang-tab" data-lang="python" markdown="1">
 
-Get a fresh JWT token and run the test script again:
+```python
+mcp_gateway = aws_native.bedrockagentcore.Gateway(
+    "mcp_gateway",
+    name=f"{stack_name}-mcp-gateway",
+    description=f"MCP Gateway with JWT auth for {stack_name}",
+    protocol_type=aws_native.bedrockagentcore.GatewayProtocolType.MCP,
+    role_arn=agent_execution.arn,
+    authorizer_type=aws_native.bedrockagentcore.GatewayAuthorizerType.CUSTOM_JWT,
+    authorizer_configuration={
+        "custom_jwt_authorizer": {
+            "allowed_clients": [mcp_client.id],
+            "discovery_url": cognito_discovery_url,
+        },
+    },
+    policy_engine_configuration={
+        "arn": mcp_policy_engine.policy_engine_arn,
+        "mode": aws_native.bedrockagentcore.GatewayPolicyEngineMode.ENFORCE,
+    },
+    tags={
+        "Name": f"{stack_name}-mcp-gateway",
+        "Module": "Gateway",
+    },
+    opts=pulumi.ResourceOptions(
+        depends_on=[
+            iam_propagation_wait,
+            mcp_policy_engine,
+        ]
+    ),
+)
+```
+
+</div>
+
+</div>
+
+To watch denied requests without blocking traffic, change `mode` from `Enforce`/`ENFORCE` to `LogOnly`/`LOG_ONLY`. The Policy Engine still evaluates each call and writes the decision to traces, but the Gateway forwards everything regardless. Useful for testing a new policy in production before flipping enforcement on.
+
+### Step 13: Define a Cedar policy
+
+This policy permits any JWT-authenticated user to call `add_numbers` and `greet_user` on the Gateway. Default-deny blocks `multiply_numbers`.
+
+About `validationMode`: MCP tool actions aren't registered in the engine's action catalog until tools are first listed through the Gateway, so Cedar's strict validator would reject this policy at create time. `IGNORE_ALL_FINDINGS` skips that check. The policy is still enforced at runtime when the Gateway evaluates a request.
+
+<details>
+<summary><strong>Want to know more?</strong> - Pulumi Registry</summary>
+<p><a href="https://www.pulumi.com/registry/packages/aws-native/api-docs/bedrockagentcore/policy/">aws-native.bedrockagentcore.Policy</a></p>
+</details>
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+const cedarStatement = pulumi
+  .all([mcpGateway.gatewayArn, mcpTargetName])
+  .apply(
+    ([gwArn, targetName]) =>
+      `permit(principal is AgentCore::OAuthUser, action in [AgentCore::Action::"${targetName}___add_numbers", AgentCore::Action::"${targetName}___greet_user"], resource == AgentCore::Gateway::"${gwArn}");`,
+  );
+
+const allowAddAndGreet = new awsNative.bedrockagentcore.Policy(
+  "allow_add_and_greet",
+  {
+    policyEngineId: mcpPolicyEngine.policyEngineId,
+    name: "allow_add_and_greet",
+    description:
+      "Allow add_numbers and greet_user only - deny multiply_numbers",
+    definition: {
+      cedar: {
+        statement: cedarStatement,
+      },
+    },
+    validationMode:
+      awsNative.bedrockagentcore.PolicyValidationMode.IgnoreAllFindings,
+  },
+  {
+    dependsOn: [mcpGatewayTarget],
+  },
+);
+```
+
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
+
+```python
+cedar_statement = pulumi.Output.all(
+    mcp_gateway.gateway_arn, pulumi.Output.from_input(mcp_target_name)
+).apply(
+    lambda args: (
+        "permit("
+        "principal is AgentCore::OAuthUser, "
+        f'action in [AgentCore::Action::"{args[1]}___add_numbers", '
+        f'AgentCore::Action::"{args[1]}___greet_user"], '
+        f'resource == AgentCore::Gateway::"{args[0]}"'
+        ");"
+    )
+)
+
+allow_add_and_greet = aws_native.bedrockagentcore.Policy(
+    "allow_add_and_greet",
+    policy_engine_id=mcp_policy_engine.policy_engine_id,
+    name="allow_add_and_greet",
+    description="Allow add_numbers and greet_user only - deny multiply_numbers",
+    definition={
+        "cedar": {
+            "statement": cedar_statement,
+        },
+    },
+    validation_mode=aws_native.bedrockagentcore.PolicyValidationMode.IGNORE_ALL_FINDINGS,
+    opts=pulumi.ResourceOptions(depends_on=[mcp_gateway_target]),
+)
+```
+
+</div>
+
+</div>
+
+While we're here, add the new IDs to the outputs so they're easy to grab from `pulumi stack output`:
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```typescript
+export const policyEngineId = mcpPolicyEngine.policyEngineId;
+export const policyEngineArn = mcpPolicyEngine.policyEngineArn;
+export const policyId = allowAddAndGreet.policyId;
+export const policyArn = allowAddAndGreet.policyArn;
+```
+
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
+
+```python
+pulumi.export("policyEngineId", mcp_policy_engine.policy_engine_id)
+pulumi.export("policyEngineArn", mcp_policy_engine.policy_engine_arn)
+pulumi.export("policyId", allow_add_and_greet.policy_id)
+pulumi.export("policyArn", allow_add_and_greet.policy_arn)
+```
+
+</div>
+
+</div>
+
+### Step 14: Deploy and re-test
 
 ```bash
-export GATEWAY_URL=$(pulumi stack output gatewayUrl)
-export JWT_TOKEN="<get a fresh token>"
-python test_mcp_server.py $GATEWAY_URL $JWT_TOKEN
+pulumi up
 ```
 
-This time, `add_numbers` and `greet_user` work as before, but `multiply_numbers` returns:
+You'll see Pulumi create the Policy Engine, the wait, and the Policy, plus update the Gateway in place to attach the Engine. Get a fresh JWT and rerun the test:
+
+```bash
+export JWT_TOKEN="$(pulumi env run aws-bedrock-workshop/dev -- $(pulumi stack output getTokenCommand --show-secrets) 2>&1 | grep -oE 'eyJ[A-Za-z0-9._-]+')"
+python test_mcp_server.py "$(pulumi stack output gatewayUrl)" "$JWT_TOKEN"
+```
+
+This time the Gateway only advertises tools your policy permits. Two tools are listed; `multiply_numbers` is gone:
+
+- `mcp-server-target___add_numbers(5, 3)` returns `8`
+- `mcp-server-target___greet_user('Alice')` returns `Hello, Alice! Nice to meet you.`
+- `multiply_numbers` is missing from the list
+
+If you force a `multiply_numbers` call by editing `test_mcp_server.py` to call it by name, the Policy Engine returns `Tool Execution Denied: Tool call not allowed due to policy enforcement`.
+
+### Trying a different policy
+
+Edit the `cedar_statement` / `cedarStatement` in your program to permit `multiply_numbers`:
 
 ```text
-Tool Execution Denied: Tool call not allowed due to policy enforcement
-[No policy applies to the request (denied by default).]
+action in [
+  AgentCore::Action::"mcp-server-target___add_numbers",
+  AgentCore::Action::"mcp-server-target___greet_user",
+  AgentCore::Action::"mcp-server-target___multiply_numbers"
+]
 ```
 
-That's Cedar in action - default-deny blocks any tool not explicitly permitted.
+Run `pulumi up`, grab a fresh token, rerun the test. All three tools now work.
 
-### Clean up Cedar resources
+### Cleaning up
 
-When you're done experimenting, remove the policy engine from the Gateway and delete the resources:
-
-```bash
-# Detach policy engine (re-run the update_gateway without policyEngineConfiguration)
-# Delete policy, then policy engine
-pulumi env run aws-bedrock-workshop/dev -- aws bedrock-agentcore-control delete-policy \
-  --policy-engine-id $POLICY_ENGINE_ID \
-  --policy-id <YOUR_POLICY_ID> \
-  --region us-east-1
-
-pulumi env run aws-bedrock-workshop/dev -- aws bedrock-agentcore-control delete-policy-engine \
-  --policy-engine-id $POLICY_ENGINE_ID \
-  --region us-east-1
-```
+`pulumi destroy` tears down everything in this stack - runtime, Gateway, Policy Engine, Cedar policy, IAM, ECR, Cognito - in dependency order. No manual cleanup needed.
 
 ## What you learned
 
@@ -2368,6 +2790,8 @@ pulumi env run aws-bedrock-workshop/dev -- aws bedrock-agentcore-control delete-
 - Cognito provides JWT tokens; the Gateway validates them before any request reaches your MCP server code
 - Pulumi secrets encrypt sensitive config values like passwords - they're masked in output and encrypted in state
 - [Cedar](https://www.cedarpolicy.com/) policies use a default-deny model: everything is blocked unless explicitly permitted
-- The Policy Engine workflow is: create engine, add policies, attach to Gateway in ENFORCE mode
+- One Pulumi program can mix `pulumi-aws` and `pulumi-aws-native` - useful when the CloudFormation registry exposes a resource the classic provider doesn't yet bridge
+- A `command.local.Command` is a clean escape hatch when a published CFN schema is missing a required field
+- The community-maintained [`pulumiverse-time`](https://github.com/pulumiverse/pulumi-time) provider gives you Terraform's `time_sleep` for IAM eventual-consistency races
 
 Next up: [Module 3 - Multi-agent orchestration](03-multi-agent-orchestration.md)
