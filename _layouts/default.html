@@ -5,7 +5,112 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page.title | default: site.title }}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/21.0.7/primer.css">
+  <!-- Phosphor Icons — official Pulumi icon library -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <style>
+    /* ── Pulumi brand fonts ── */
+    @font-face {
+      font-family: 'Inter';
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+      src: url('{{ "/assets/brand/fonts/inter/variable/InterVariable.ttf" | relative_url }}') format('truetype-variations');
+    }
+    @font-face {
+      font-family: 'Inter';
+      font-style: italic;
+      font-weight: 100 900;
+      font-display: swap;
+      src: url('{{ "/assets/brand/fonts/inter/variable/InterVariable-Italic.ttf" | relative_url }}') format('truetype-variations');
+    }
+    @font-face {
+      font-family: 'Monaspace Neon';
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+      src: url('{{ "/assets/brand/fonts/monaspace-neon/web/Monaspace Neon Var.woff2" | relative_url }}') format('woff2-variations');
+    }
+
+    /* ── Pulumi brand tokens ── */
+    :root {
+      --pulumi-violet-50:  #f5f5ff;
+      --pulumi-violet-200: #dedbff;
+      --pulumi-violet-500: #9077f3;
+      --pulumi-violet-600: #7952e5;
+      --pulumi-violet-700: #5a30c5;
+      --pulumi-violet-800: #492e8e;
+      --pulumi-violet-900: #392960;
+      --pulumi-violet-950: #231f33;
+      --pulumi-gray-100:   #efeff0;
+      --pulumi-gray-900:   #46434c;
+      --pulumi-gray-950:   #2e2932;
+      --pulumi-aqua-500:   #00a896;
+      --pulumi-green-500:  #21c45d;
+      --pulumi-green-600:  #16a249;
+      --pulumi-yellow-400: #fcba23;
+      --pulumi-yellow-500: #f49709;
+    }
+
+    /* ── Pulumi-aligned dark canvas (overrides Primer dark) ── */
+    [data-color-mode="dark"],
+    html[data-color-mode="auto"] body.dracula {
+      --color-canvas-default: var(--pulumi-violet-950);
+      --color-canvas-subtle:  var(--pulumi-gray-950);
+      --color-border-default: var(--pulumi-gray-900);
+      --color-fg-default:     var(--pulumi-gray-100);
+    }
+    [data-color-mode="dark"] body,
+    html[data-color-mode="auto"] body.dracula {
+      background-color: var(--pulumi-violet-950);
+      color: var(--pulumi-gray-100);
+    }
+    [data-color-mode="dark"] .markdown-body a,
+    html[data-color-mode="auto"] body.dracula .markdown-body a {
+      color: var(--pulumi-violet-500);
+    }
+    [data-color-mode="dark"] .markdown-body a:hover,
+    html[data-color-mode="auto"] body.dracula .markdown-body a:hover {
+      color: var(--pulumi-violet-200);
+    }
+
+    /* Tables in dark mode — Primer paints rows with canvas tokens that read as black */
+    [data-color-mode="dark"] .markdown-body table tr,
+    html[data-color-mode="auto"] body.dracula .markdown-body table tr {
+      background-color: var(--pulumi-violet-950);
+      border-top: 1px solid var(--pulumi-gray-900);
+    }
+    [data-color-mode="dark"] .markdown-body table tr:nth-child(2n),
+    html[data-color-mode="auto"] body.dracula .markdown-body table tr:nth-child(2n) {
+      background-color: #2a2440; /* between violet-950 and violet-900 — subtle stripe */
+    }
+    [data-color-mode="dark"] .markdown-body table th,
+    [data-color-mode="dark"] .markdown-body table td,
+    html[data-color-mode="auto"] body.dracula .markdown-body table th,
+    html[data-color-mode="auto"] body.dracula .markdown-body table td {
+      border-color: var(--pulumi-gray-900);
+    }
+    [data-color-mode="dark"] .markdown-body table th,
+    html[data-color-mode="auto"] body.dracula .markdown-body table th {
+      background-color: var(--pulumi-violet-900);
+      color: var(--pulumi-gray-100);
+    }
+
+    body, .markdown-body {
+      font-family: Inter, 'Helvetica Neue', Helvetica, Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-feature-settings: "liga" 1, "calt" 1, "cv11" 1;
+    }
+    .markdown-body { line-height: 1.3; }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3,
+    .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+      font-weight: 600;
+      letter-spacing: -0.05em;
+      line-height: 1.1;
+    }
+    code, pre, kbd, samp, tt, .highlight pre, .highlight code {
+      font-family: 'Monaspace Neon', Menlo, Consolas, ui-monospace, monospace;
+    }
+
     .markdown-body {
       box-sizing: border-box;
       min-width: 200px;
@@ -18,16 +123,41 @@
         padding: 15px;
       }
     }
+    .markdown-body a { color: var(--pulumi-violet-700); }
+    .markdown-body a:hover { color: var(--pulumi-violet-600); }
+
+    .site-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
     .site-header a {
       text-decoration: none;
-      color: #6366f1;
+      color: var(--pulumi-violet-700);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
     }
     .site-header a:hover {
-      text-decoration: underline;
+      color: var(--pulumi-violet-600);
     }
+    .site-header .site-logo {
+      height: 36px;
+      width: auto;
+      display: block;
+      background: transparent !important;
+    }
+    .site-header .site-logo-dark { display: none; }
+    [data-color-mode="dark"] .site-header .site-logo-light,
+    html[data-color-mode="auto"][data-dark-theme="dark"] body.dracula .site-header .site-logo-light { display: none; }
+    [data-color-mode="dark"] .site-header .site-logo-dark,
+    html[data-color-mode="auto"][data-dark-theme="dark"] body.dracula .site-header .site-logo-dark { display: block; }
     .site-header h1 {
       margin: 0;
-      font-size: 2em;
+      font-size: 1.75em;
+      font-family: 'Inter Display', Inter, sans-serif;
+      font-weight: 600;
+      letter-spacing: -0.05em;
     }
     .theme-toggle {
       position: fixed;
@@ -67,23 +197,24 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 16px;
       line-height: 1;
       cursor: pointer;
     }
+    .theme-toggle i, .code-copy-btn i { font-size: 18px; line-height: 1; }
 
-    /* ── Light mode syntax (GitHub style) ── default ── */
-    .highlight { background: #f6f8fa; border: 1px solid #d0d7de; }
-    .code-copy-btn { border: 1px solid #d0d7de; background: #fff; color: #1f2328; }
-    .code-copy-btn:hover { background: #f6f8fa; }
-    .code-copy-btn.copied { color: #1a7f37; }
-    .highlight .c, .highlight .c1, .highlight .cm, .highlight .cp, .highlight .cs { color: #6e7781; font-style: italic; }
-    .highlight .k, .highlight .kd, .highlight .kn, .highlight .kp, .highlight .kr, .highlight .kt, .highlight .kv { color: #cf222e; }
-    .highlight .kc, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #0550ae; }
-    .highlight .s, .highlight .sa, .highlight .sb, .highlight .sc, .highlight .dl, .highlight .sd, .highlight .s1, .highlight .s2, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx, .highlight .sr, .highlight .ss { color: #0a3069; }
-    .highlight .na, .highlight .nb, .highlight .nc, .highlight .nd, .highlight .ne, .highlight .nf, .highlight .nl, .highlight .nn, .highlight .nt, .highlight .nv, .highlight .nx { color: #8250df; }
-    .highlight .o, .highlight .ow, .highlight .p, .highlight .pi { color: #1f2328; }
-    .highlight .gh, .highlight .gu { color: #0550ae; font-weight: 600; }
+    /* ── Light mode syntax (Pulumi brand palette) ── default ── */
+    .highlight { background: #f5f5ff; border: 1px solid #dedbff; }
+    .code-copy-btn { border: 1px solid #dedbff; background: #fff; color: #2e2932; }
+    .code-copy-btn:hover { background: #f5f5ff; }
+    .code-copy-btn.copied { color: #16a249; }
+    .highlight .c, .highlight .c1, .highlight .cm, .highlight .cp, .highlight .cs { color: #6a6675; font-style: italic; }
+    .highlight .k, .highlight .kd, .highlight .kn, .highlight .kp, .highlight .kr, .highlight .kt, .highlight .kv { color: #5a30c5; }
+    .highlight .kc, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo, .highlight .il { color: #1e57eb; }
+    .highlight .s, .highlight .sa, .highlight .sb, .highlight .sc, .highlight .dl, .highlight .sd, .highlight .s1, .highlight .s2, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx, .highlight .sr, .highlight .ss { color: #16a249; }
+    .highlight .na, .highlight .nb, .highlight .nc, .highlight .nd, .highlight .ne, .highlight .nf, .highlight .nl, .highlight .nn, .highlight .nt, .highlight .nv, .highlight .nx { color: #00756c; }
+    .highlight .o, .highlight .ow, .highlight .p, .highlight .pi { color: #2e2932; }
+    .highlight .gh, .highlight .gu { color: #5a30c5; font-weight: 600; }
 
     /* ── Dracula mixin (reused by forced-dark AND auto+system-dark) ── */
     .dracula .highlight, .dracula .highlight { background: #282a36; border-color: #44475a; }
@@ -101,13 +232,19 @@
   </style>
 </head>
 <body>
-  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
-    <span id="theme-icon">&#9728;</span>
+  <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+    <i id="theme-icon" class="ph-bold ph-sun" aria-hidden="true"></i>
   </button>
 
   <article class="markdown-body">
-    <div class="site-header" style="margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid #6366f1;">
+    <div class="site-header" style="margin-bottom: 32px; padding-bottom: 16px; border-bottom: 2px solid var(--pulumi-violet-700);">
       <a href="{{ '/' | relative_url }}">
+        <img class="site-logo site-logo-light"
+             src="{{ '/assets/brand/logos/svg/pulumi-logo-horizontal-color-light.svg' | relative_url }}"
+             alt="Pulumi">
+        <img class="site-logo site-logo-dark"
+             src="{{ '/assets/brand/logos/svg/pulumi-logo-horizontal-color-dark.svg' | relative_url }}"
+             alt="Pulumi">
         <h1>{{ site.title }}</h1>
       </a>
     </div>
@@ -156,8 +293,12 @@
       html.setAttribute('data-color-mode', theme === 'auto' ? 'auto' : theme);
       html.setAttribute('data-light-theme', 'light');
       html.setAttribute('data-dark-theme', 'dark');
-      document.getElementById('theme-icon').innerHTML =
-        theme === 'dark' ? '&#9790;' : theme === 'light' ? '&#9728;' : '&#9881;';
+      var iconEl = document.getElementById('theme-icon');
+      iconEl.className = 'ph-bold ' + (
+        theme === 'dark'  ? 'ph-moon' :
+        theme === 'light' ? 'ph-sun'  :
+                            'ph-monitor'
+      );
 
       // Toggle .dracula on body for syntax highlighting
       const isDark = theme === 'dark' ||
@@ -188,23 +329,23 @@
         var button = document.createElement('button');
         button.className = 'code-copy-btn';
         button.type = 'button';
-        button.textContent = '⧉';
+        button.innerHTML = '<i class="ph ph-copy" aria-hidden="true"></i>';
         button.setAttribute('aria-label', 'Copy code');
         button.setAttribute('title', 'Copy code');
 
         button.addEventListener('click', async function () {
           try {
             await copyTextToClipboard(code.textContent);
-            button.textContent = '✓';
+            button.innerHTML = '<i class="ph ph-check" aria-hidden="true"></i>';
             button.classList.add('copied');
             setTimeout(function () {
-              button.textContent = '⧉';
+              button.innerHTML = '<i class="ph ph-copy" aria-hidden="true"></i>';
               button.classList.remove('copied');
             }, 1500);
           } catch (err) {
-            button.textContent = '!';
+            button.innerHTML = '<i class="ph ph-warning" aria-hidden="true"></i>';
             setTimeout(function () {
-              button.textContent = '⧉';
+              button.innerHTML = '<i class="ph ph-copy" aria-hidden="true"></i>';
             }, 1500);
           }
         });

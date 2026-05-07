@@ -14,7 +14,7 @@ In this hands-on workshop, you'll learn how to build, deploy, and connect AI age
 ```mermaid
 flowchart TD
     O["Orchestrator Agent<br/>Coordinates delegation"]
-    style O fill:#6366f1,color:#fff,stroke:#4f46e5,stroke-width:2px
+    style O fill:#5a30c5,color:#fff,stroke:#492e8e,stroke-width:2px
 
     O --> A["Basic Agent<br/>Q&A"]
     O --> B["MCP Server<br/>JWT + Cedar Policies"]
@@ -26,14 +26,14 @@ flowchart TD
     D --> G["Memory"]
     D --> H["S3 Results"]
 
-    style A fill:#22c55e,color:#fff,stroke:#16a34a,stroke-width:2px
-    style B fill:#22c55e,color:#fff,stroke:#16a34a,stroke-width:2px
-    style C fill:#22c55e,color:#fff,stroke:#16a34a,stroke-width:2px
-    style D fill:#22c55e,color:#fff,stroke:#16a34a,stroke-width:2px
-    style E fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px
-    style F fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px
-    style G fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px
-    style H fill:#f59e0b,color:#fff,stroke:#d97706,stroke-width:2px
+    style A fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style B fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style C fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style D fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style E fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style G fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style H fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
 ```
 
 Your agents will deploy as containerized services on AgentCore Runtime, authenticate with JWT tokens via Cognito, enforce access control with Cedar policies, and communicate agent-to-agent using IAM-scoped invocations.
@@ -49,13 +49,6 @@ Your agents will deploy as containerized services on AgentCore Runtime, authenti
 | [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory | 40 min |
 | [05](05-housekeeping.md) | Cleanup | 10 min |
 | | **Total** | **180 min** |
-
-## Speakers
-
-| Name | Role | Company |
-|------|------|---------|
-| Engin Diri | Senior Solutions Architect | Pulumi |
-| Adam Gordon Bell | Community Engineer | Pulumi |
 
 ## Prerequisites
 

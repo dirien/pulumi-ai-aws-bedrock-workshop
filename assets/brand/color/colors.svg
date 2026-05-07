@@ -1,0 +1,250 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="832" height="1448" viewBox="-24 0 832 1448">
+  <rect x="-24" width="832" height="1448" fill="#ffffff" />
+  <text x="96" y="56" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Violet</text>
+  <rect x="108" y="24" width="56" height="56" fill="#f5f5ff" />
+  <text x="136" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="24" width="56" height="56" fill="#ebebff" />
+  <text x="198" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="24" width="56" height="56" fill="#dedbff" />
+  <text x="260" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="24" width="56" height="56" fill="#c3bdff" />
+  <text x="322" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="24" width="56" height="56" fill="#a697fc" />
+  <text x="384" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="24" width="56" height="56" fill="#9077f3" />
+  <text x="446" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="24" width="56" height="56" fill="#7952e5" />
+  <text x="508" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="24" width="56" height="56" fill="#5a30c5" />
+  <text x="570" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="24" width="56" height="56" fill="#492e8e" />
+  <text x="632" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="24" width="56" height="56" fill="#392960" />
+  <text x="694" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="24" width="56" height="56" fill="#231f33" />
+  <text x="756" y="94" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="148" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Gray</text>
+  <rect x="108" y="116" width="56" height="56" fill="#fafafa" />
+  <text x="136" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="116" width="56" height="56" fill="#efeff0" />
+  <text x="198" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="116" width="56" height="56" fill="#e0dfe2" />
+  <text x="260" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="116" width="56" height="56" fill="#cbcace" />
+  <text x="322" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="116" width="56" height="56" fill="#b3b1b9" />
+  <text x="384" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="116" width="56" height="56" fill="#9997a0" />
+  <text x="446" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="116" width="56" height="56" fill="#817d8c" />
+  <text x="508" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="116" width="56" height="56" fill="#6a6675" />
+  <text x="570" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="116" width="56" height="56" fill="#56535a" />
+  <text x="632" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="116" width="56" height="56" fill="#46434c" />
+  <text x="694" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="116" width="56" height="56" fill="#2e2932" />
+  <text x="756" y="186" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="240" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Green</text>
+  <rect x="108" y="208" width="56" height="56" fill="#f6fdf9" />
+  <text x="136" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="208" width="56" height="56" fill="#dffce9" />
+  <text x="198" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="208" width="56" height="56" fill="#b6fbce" />
+  <text x="260" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="208" width="56" height="56" fill="#84f1ac" />
+  <text x="322" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="208" width="56" height="56" fill="#4ade80" />
+  <text x="384" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="208" width="56" height="56" fill="#21c45d" />
+  <text x="446" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="208" width="56" height="56" fill="#16a249" />
+  <text x="508" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="208" width="56" height="56" fill="#1c7d41" />
+  <text x="570" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="208" width="56" height="56" fill="#165a31" />
+  <text x="632" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="208" width="56" height="56" fill="#1c3f2b" />
+  <text x="694" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="208" width="56" height="56" fill="#202723" />
+  <text x="756" y="278" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="332" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Aqua</text>
+  <rect x="108" y="300" width="56" height="56" fill="#f5fffd" />
+  <text x="136" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="300" width="56" height="56" fill="#ccfff5" />
+  <text x="198" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="300" width="56" height="56" fill="#5cffde" />
+  <text x="260" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="300" width="56" height="56" fill="#1efad9" />
+  <text x="322" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="300" width="56" height="56" fill="#02d9c0" />
+  <text x="384" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="300" width="56" height="56" fill="#00a896" />
+  <text x="446" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="300" width="56" height="56" fill="#008f83" />
+  <text x="508" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="300" width="56" height="56" fill="#00756c" />
+  <text x="570" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="300" width="56" height="56" fill="#075f59" />
+  <text x="632" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="300" width="56" height="56" fill="#114642" />
+  <text x="694" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="300" width="56" height="56" fill="#101e1d" />
+  <text x="756" y="370" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="424" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Blue</text>
+  <rect x="108" y="392" width="56" height="56" fill="#f5faff" />
+  <text x="136" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="392" width="56" height="56" fill="#e5f1ff" />
+  <text x="198" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="392" width="56" height="56" fill="#cce4ff" />
+  <text x="260" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="392" width="56" height="56" fill="#a3d0ff" />
+  <text x="322" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="392" width="56" height="56" fill="#75b5ff" />
+  <text x="384" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="392" width="56" height="56" fill="#5296ff" />
+  <text x="446" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="392" width="56" height="56" fill="#3c79f6" />
+  <text x="508" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="392" width="56" height="56" fill="#1e57eb" />
+  <text x="570" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="392" width="56" height="56" fill="#1e47c2" />
+  <text x="632" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="392" width="56" height="56" fill="#28448a" />
+  <text x="694" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="392" width="56" height="56" fill="#283048" />
+  <text x="756" y="462" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="516" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Red</text>
+  <rect x="108" y="484" width="56" height="56" fill="#fff5f6" />
+  <text x="136" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="484" width="56" height="56" fill="#ffe0e1" />
+  <text x="198" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="484" width="56" height="56" fill="#ffc7ca" />
+  <text x="260" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="484" width="56" height="56" fill="#ff9fa4" />
+  <text x="322" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="484" width="56" height="56" fill="#ff676e" />
+  <text x="384" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="484" width="56" height="56" fill="#fb2c36" />
+  <text x="446" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="484" width="56" height="56" fill="#ee1721" />
+  <text x="508" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="484" width="56" height="56" fill="#bd141c" />
+  <text x="570" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="484" width="56" height="56" fill="#96171e" />
+  <text x="632" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="484" width="56" height="56" fill="#611f22" />
+  <text x="694" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="484" width="56" height="56" fill="#331f20" />
+  <text x="756" y="554" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="608" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Orange</text>
+  <rect x="108" y="576" width="56" height="56" fill="#fffaf5" />
+  <text x="136" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="576" width="56" height="56" fill="#ffebd1" />
+  <text x="198" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="576" width="56" height="56" fill="#fedbb3" />
+  <text x="260" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="576" width="56" height="56" fill="#fdbe7c" />
+  <text x="322" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="576" width="56" height="56" fill="#fb9746" />
+  <text x="384" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="576" width="56" height="56" fill="#f96c0b" />
+  <text x="446" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="576" width="56" height="56" fill="#da510b" />
+  <text x="508" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="576" width="56" height="56" fill="#b23c0b" />
+  <text x="570" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="576" width="56" height="56" fill="#923111" />
+  <text x="632" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="576" width="56" height="56" fill="#693420" />
+  <text x="694" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="576" width="56" height="56" fill="#33231f" />
+  <text x="756" y="646" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="96" y="700" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Yellow</text>
+  <rect x="108" y="668" width="56" height="56" fill="#fffbeb" />
+  <text x="136" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">50</text>
+  <rect x="170" y="668" width="56" height="56" fill="#fef2c7" />
+  <text x="198" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">100</text>
+  <rect x="232" y="668" width="56" height="56" fill="#fde38a" />
+  <text x="260" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">200</text>
+  <rect x="294" y="668" width="56" height="56" fill="#fdcf4c" />
+  <text x="322" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">300</text>
+  <rect x="356" y="668" width="56" height="56" fill="#fcba23" />
+  <text x="384" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">400</text>
+  <rect x="418" y="668" width="56" height="56" fill="#f49709" />
+  <text x="446" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">500</text>
+  <rect x="480" y="668" width="56" height="56" fill="#da7205" />
+  <text x="508" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">600</text>
+  <rect x="542" y="668" width="56" height="56" fill="#b54f08" />
+  <text x="570" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">700</text>
+  <rect x="604" y="668" width="56" height="56" fill="#933d0d" />
+  <text x="632" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">800</text>
+  <rect x="666" y="668" width="56" height="56" fill="#723213" />
+  <text x="694" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">900</text>
+  <rect x="728" y="668" width="56" height="56" fill="#371d11" />
+  <text x="756" y="738" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">950</text>
+  <text x="24" y="806" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333333">Semantic</text>
+  <text x="136" y="832" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">Primary</text>
+  <text x="198" y="832" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">Accent</text>
+  <text x="260" y="832" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">Muted</text>
+  <text x="322" y="832" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">Background</text>
+  <text x="440" y="806" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333333">Utility</text>
+  <text x="548" y="832" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">Light</text>
+  <text x="610" y="832" font-family="Arial, sans-serif" font-size="10" fill="#555555" text-anchor="middle">Dark</text>
+  <text x="96" y="868" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Violet</text>
+  <rect x="108" y="836" width="56" height="56" fill="#5a30c5" />
+  <rect x="170" y="836" width="56" height="56" fill="#9077f3" />
+  <rect x="232" y="836" width="56" height="56" fill="#dedbff" />
+  <rect x="294" y="836" width="56" height="56" fill="#f5f5ff" />
+  <text x="96" y="944" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Gray</text>
+  <rect x="108" y="912" width="56" height="56" fill="#6a6675" />
+  <rect x="170" y="912" width="56" height="56" fill="#9997a0" />
+  <rect x="232" y="912" width="56" height="56" fill="#e0dfe2" />
+  <rect x="294" y="912" width="56" height="56" fill="#fafafa" />
+  <text x="96" y="1020" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Green</text>
+  <rect x="108" y="988" width="56" height="56" fill="#1c7d41" />
+  <rect x="170" y="988" width="56" height="56" fill="#21c45d" />
+  <rect x="232" y="988" width="56" height="56" fill="#b6fbce" />
+  <rect x="294" y="988" width="56" height="56" fill="#f6fdf9" />
+  <text x="96" y="1096" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Aqua</text>
+  <rect x="108" y="1064" width="56" height="56" fill="#00756c" />
+  <rect x="170" y="1064" width="56" height="56" fill="#00a896" />
+  <rect x="232" y="1064" width="56" height="56" fill="#5cffde" />
+  <rect x="294" y="1064" width="56" height="56" fill="#f5fffd" />
+  <text x="96" y="1172" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Blue</text>
+  <rect x="108" y="1140" width="56" height="56" fill="#1e57eb" />
+  <rect x="170" y="1140" width="56" height="56" fill="#5296ff" />
+  <rect x="232" y="1140" width="56" height="56" fill="#cce4ff" />
+  <rect x="294" y="1140" width="56" height="56" fill="#f5faff" />
+  <text x="96" y="1248" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Red</text>
+  <rect x="108" y="1216" width="56" height="56" fill="#bd141c" />
+  <rect x="170" y="1216" width="56" height="56" fill="#fb2c36" />
+  <rect x="232" y="1216" width="56" height="56" fill="#ffc7ca" />
+  <rect x="294" y="1216" width="56" height="56" fill="#fff5f6" />
+  <text x="96" y="1324" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Orange</text>
+  <rect x="108" y="1292" width="56" height="56" fill="#b23c0b" />
+  <rect x="170" y="1292" width="56" height="56" fill="#f96c0b" />
+  <rect x="232" y="1292" width="56" height="56" fill="#fedbb3" />
+  <rect x="294" y="1292" width="56" height="56" fill="#fffaf5" />
+  <text x="96" y="1400" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Yellow</text>
+  <rect x="108" y="1368" width="56" height="56" fill="#b54f08" />
+  <rect x="170" y="1368" width="56" height="56" fill="#f49709" />
+  <rect x="232" y="1368" width="56" height="56" fill="#fde38a" />
+  <rect x="294" y="1368" width="56" height="56" fill="#fffbeb" />
+  <text x="508" y="868" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Service Black</text>
+  <rect x="520" y="836" width="56" height="56" fill="#1f1b21" />
+  <rect x="582" y="836" width="56" height="56" fill="#1f1b21" />
+  <text x="508" y="944" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Foreground</text>
+  <rect x="520" y="912" width="56" height="56" fill="#1f1b21" />
+  <rect x="582" y="912" width="56" height="56" fill="#ffffff" stroke="#e0dfe2" stroke-width="1" />
+  <text x="508" y="1020" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Foreground Muted</text>
+  <rect x="520" y="988" width="56" height="56" fill="#6a6675" />
+  <rect x="582" y="988" width="56" height="56" fill="#cbcace" />
+  <text x="508" y="1096" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Foreground Dark</text>
+  <rect x="520" y="1064" width="56" height="56" fill="#000000" />
+  <rect x="582" y="1064" width="56" height="56" fill="#ffffff" stroke="#e0dfe2" stroke-width="1" />
+  <text x="508" y="1172" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333333" text-anchor="end">Background</text>
+  <rect x="520" y="1140" width="56" height="56" fill="#ffffff" stroke="#e0dfe2" stroke-width="1" />
+  <rect x="582" y="1140" width="56" height="56" fill="#1f1b21" />
+</svg>
