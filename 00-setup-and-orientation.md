@@ -42,7 +42,7 @@ If you haven't already, create a free Pulumi account.
 
 ### Codespaces Users and Optionally Local Terminal Users
 
-Go to the Pulumi Cloud UI and click on your user account in the upper righthand side of the screen.
+Go to the Pulumi Cloud UI and click on your user account.
 
 Select `Personal access tokens` and create an access token.
 
@@ -192,7 +192,11 @@ pulumi preview
 If this succeeds, your AWS credentials are working through ESC and you're ready for Module 1. Destroy the test project:
 
 ```bash
+# Destroy the resources
 pulumi destroy --yes
+# Delete the stack (and state file)
+pulumi stack rm
+# Clean up the directory
 cd -
 rm -rf /tmp/verify-setup
 ```

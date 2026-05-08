@@ -777,6 +777,7 @@ const mcpGateway = new awsNative.bedrockagentcore.Gateway(
       customJwtAuthorizer: {
         allowedClients: [mcpClient.id],
         discoveryUrl: cognitoDiscoveryUrlInput,
+        allowedScopes: ["aws.cognito.signin.user.admin"],
       },
     },
     policyEngineConfiguration: {
@@ -812,19 +813,30 @@ const runtimeInvocationEndpoint = pulumi
       `https://bedrock-agentcore.${region.region}.amazonaws.com/runtimes/${encodeURIComponent(arn)}/invocations?qualifier=DEFAULT`,
   );
 
-const gatewayTargetCreateScript = `python3 <<'PYEOF'
-import boto3, os, sys, time
+// The upsert script: create the target if missing, update it if the endpoint changed,
+// then wait for READY. Used for both create and update so the delete script is never
+// called during normal trigger-driven re-runs (which would kill the just-created target).
+const gatewayTargetUpsertScript = `python3 <<'PYEOF'
+import boto3, hashlib, os, sys, time
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 target_id = None
+existing_endpoint = None
+existing_description = None
+source_stamp = hashlib.sha1(os.environ['SOURCE_VERSION'].encode()).hexdigest()[:10]
+description = f'Target for AgentCore-hosted MCP server [{source_stamp}]'
 for t in client.list_gateway_targets(gatewayIdentifier=os.environ['GATEWAY_ID']).get('items', []):
     if t['name'] == os.environ['TARGET_NAME']:
         target_id = t['targetId']
+        existing_endpoint = (
+            t.get('targetConfiguration', {}).get('mcp', {}).get('mcpServer', {}).get('endpoint')
+        )
+        existing_description = t.get('description')
         break
 if target_id is None:
     r = client.create_gateway_target(
         gatewayIdentifier=os.environ['GATEWAY_ID'],
         name=os.environ['TARGET_NAME'],
-        description='Target for AgentCore-hosted MCP server',
+        description=description,
         targetConfiguration={'mcp': {'mcpServer': {'endpoint': os.environ['ENDPOINT']}}},
         credentialProviderConfigurations=[{
             'credentialProviderType': 'GATEWAY_IAM_ROLE',
@@ -832,8 +844,18 @@ if target_id is None:
         }],
     )
     target_id = r['targetId']
-# Wait for READY so the policy engine knows the tool actions before any
-# Cedar policy referencing them is created.
+elif existing_endpoint != os.environ['ENDPOINT'] or existing_description != description:
+    client.update_gateway_target(
+        gatewayIdentifier=os.environ['GATEWAY_ID'],
+        targetId=target_id,
+        name=os.environ['TARGET_NAME'],
+        description=description,
+        targetConfiguration={'mcp': {'mcpServer': {'endpoint': os.environ['ENDPOINT']}}},
+        credentialProviderConfigurations=[{
+            'credentialProviderType': 'GATEWAY_IAM_ROLE',
+            'credentialProvider': {'iamCredentialProvider': {'service': 'bedrock-agentcore'}},
+        }],
+    )
 for _ in range(60):
     g = client.get_gateway_target(gatewayIdentifier=os.environ['GATEWAY_ID'], targetId=target_id)
     status = g.get('status')
@@ -848,29 +870,34 @@ PYEOF
 `;
 
 const gatewayTargetDeleteScript = `python3 <<'PYEOF'
-import boto3, os
+import boto3, hashlib, os
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
+source_stamp = hashlib.sha1(os.environ['SOURCE_VERSION'].encode()).hexdigest()[:10]
+expected_description = f'Target for AgentCore-hosted MCP server [{source_stamp}]'
 try:
     targets = client.list_gateway_targets(gatewayIdentifier=os.environ['GATEWAY_ID']).get('items', [])
 except client.exceptions.ResourceNotFoundException:
     targets = []
 for t in targets:
-    if t['name'] == os.environ['TARGET_NAME']:
+    if t['name'] == os.environ['TARGET_NAME'] and t.get('description') == expected_description:
         client.delete_gateway_target(gatewayIdentifier=os.environ['GATEWAY_ID'], targetId=t['targetId'])
         break
 PYEOF
 `;
 
 const mcpGatewayTarget = new command.local.Command("mcp_gateway_target", {
-  create: gatewayTargetCreateScript,
+  create: gatewayTargetUpsertScript,
+  update: gatewayTargetUpsertScript,
   delete: gatewayTargetDeleteScript,
   environment: {
     REGION: currentRegion.apply((r) => r.region),
     GATEWAY_ID: mcpGateway.gatewayIdentifier,
     TARGET_NAME: mcpTargetName,
     ENDPOINT: runtimeInvocationEndpoint,
+    // Include the source version so that when MCP code changes, Pulumi runs
+    // the update script (not a replace) so the delete path is never triggered.
+    SOURCE_VERSION: agentSourceObject.versionId.apply((v) => v ?? "initial"),
   },
-  triggers: [mcpGateway.gatewayIdentifier, runtimeInvocationEndpoint],
 });
 
 const mcpGatewayTargetId = mcpGatewayTarget.stdout.apply((s) => s.trim());

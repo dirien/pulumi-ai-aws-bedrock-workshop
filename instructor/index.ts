@@ -30,7 +30,11 @@ function buildEscYaml(kvPairs: Record<string, string>, workshopName: string): st
   }
   lines.push("  pulumiConfig:");
   lines.push("    aws:region: us-east-1");
+  lines.push("    aws-native:region: us-east-1");
   lines.push("    aws:defaultTags:");
+  lines.push("      tags:");
+  lines.push(`        workshop: ${workshopName}`);
+  lines.push("    aws-native:defaultTags:");
   lines.push("      tags:");
   lines.push(`        workshop: ${workshopName}`);
   return lines.join("\n");
@@ -301,6 +305,7 @@ const workshopPolicy = new aws.iam.Policy("workshop_policy", {
           "iam:DeleteRole",
           "iam:GetRole",
           "iam:ListRoles",
+          "iam:ListInstanceProfilesForRole",
           "iam:PutRolePolicy",
           "iam:DeleteRolePolicy",
           "iam:GetRolePolicy",
@@ -419,6 +424,22 @@ const workshopPolicy = new aws.iam.Policy("workshop_policy", {
           "cognito-idp:AdminGetUser",
           "cognito-idp:TagResource",
           "cognito-idp:UntagResource",
+          "cognito-idp:GetUserPoolMfaConfig",
+          "cognito-idp:SetUserPoolMfaConfig",
+        ],
+        Resource: "*",
+      },
+      {
+        // Required by aws-native provider (Cloud Control API) for all resource operations
+        Sid: "CloudControlAccess",
+        Effect: "Allow",
+        Action: [
+          "cloudformation:CreateResource",
+          "cloudformation:DeleteResource",
+          "cloudformation:GetResource",
+          "cloudformation:GetResourceRequestStatus",
+          "cloudformation:ListResources",
+          "cloudformation:UpdateResource",
         ],
         Resource: "*",
       },
