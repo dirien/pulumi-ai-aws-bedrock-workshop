@@ -816,7 +816,8 @@ const runtimeInvocationEndpoint = pulumi
 // The upsert script: create the target if missing, update it if the endpoint changed,
 // then wait for READY. Used for both create and update so the delete script is never
 // called during normal trigger-driven re-runs (which would kill the just-created target).
-const gatewayTargetUpsertScript = `python3 <<'PYEOF'
+const gatewayTargetUpsertScript = `pip install boto3 -q
+python3 <<'PYEOF'
 import boto3, hashlib, os, sys, time
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 target_id = None
@@ -869,7 +870,8 @@ print(target_id)
 PYEOF
 `;
 
-const gatewayTargetDeleteScript = `python3 <<'PYEOF'
+const gatewayTargetDeleteScript = `pip install boto3 -q
+python3 <<'PYEOF'
 import boto3, hashlib, os
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 source_stamp = hashlib.sha1(os.environ['SOURCE_VERSION'].encode()).hexdigest()[:10]

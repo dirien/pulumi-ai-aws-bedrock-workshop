@@ -2094,7 +2094,8 @@ const runtimeInvocationEndpoint = pulumi
       `https://bedrock-agentcore.${region.region}.amazonaws.com/runtimes/${encodeURIComponent(arn)}/invocations?qualifier=DEFAULT`,
   );
 
-const gatewayTargetUpsertScript = `python3 <<'PYEOF'
+const gatewayTargetUpsertScript = `pip install boto3 -q
+python3 <<'PYEOF'
 import boto3, hashlib, os, sys, time
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 target_id = None
@@ -2147,7 +2148,8 @@ print(target_id)
 PYEOF
 `;
 
-const gatewayTargetDeleteScript = `python3 <<'PYEOF'
+const gatewayTargetDeleteScript = `pip install boto3 -q
+python3 <<'PYEOF'
 import boto3, hashlib, os
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 source_stamp = hashlib.sha1(os.environ['SOURCE_VERSION'].encode()).hexdigest()[:10]
@@ -2197,7 +2199,8 @@ runtime_invocation_endpoint = pulumi.Output.all(
     )
 )
 
-_GATEWAY_TARGET_UPSERT_SCRIPT = r"""python3 <<'PYEOF'
+_GATEWAY_TARGET_UPSERT_SCRIPT = r"""pip install boto3 -q
+python3 <<'PYEOF'
 import boto3, hashlib, os, sys, time
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 target_id = None
@@ -2250,7 +2253,8 @@ print(target_id)
 PYEOF
 """
 
-_GATEWAY_TARGET_DELETE_SCRIPT = r"""python3 <<'PYEOF'
+_GATEWAY_TARGET_DELETE_SCRIPT = r"""pip install boto3 -q
+python3 <<'PYEOF'
 import boto3, hashlib, os
 client = boto3.client('bedrock-agentcore-control', region_name=os.environ['REGION'])
 source_stamp = hashlib.sha1(os.environ['SOURCE_VERSION'].encode()).hexdigest()[:10]
@@ -2716,7 +2720,7 @@ const allowAddAndGreet = new awsNative.bedrockagentcore.Policy(
   "allow_add_and_greet",
   {
     policyEngineId: mcpPolicyEngine.policyEngineId,
-    name: "allow_add_and_greet",
+    name: `${stackName}-allow-add-and-greet`.replace(/-/g, "_"),
     description:
       "Allow add_numbers and greet_user only - deny multiply_numbers",
     definition: {
@@ -2754,7 +2758,7 @@ cedar_statement = pulumi.Output.all(
 allow_add_and_greet = aws_native.bedrockagentcore.Policy(
     "allow_add_and_greet",
     policy_engine_id=mcp_policy_engine.policy_engine_id,
-    name="allow_add_and_greet",
+    name=f"{stack_name}_allow_add_and_greet".replace("-", "_"),
     description="Allow add_numbers and greet_user only - deny multiply_numbers",
     definition={
         "cedar": {
