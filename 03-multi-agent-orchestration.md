@@ -236,6 +236,7 @@ Create `agent-orchestrator-code/agent.py`:
 from strands import Agent, tool
 from typing import Dict, Any
 import boto3
+from botocore.config import Config
 import json
 import os
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
@@ -255,7 +256,18 @@ def invoke_specialist(query: str) -> str:
         region = os.getenv("AWS_REGION")
         if not region:
             raise EnvironmentError("AWS_REGION environment variable is required")
-        agentcore_client = boto3.client("bedrock-agentcore", region_name=region)
+        # Long read_timeout: the specialist may take minutes on complex
+        # queries. boto3's default 60s would surface as a hang on the test
+        # client because the orchestrator's tool call would keep retrying.
+        agentcore_client = boto3.client(
+            "bedrock-agentcore",
+            region_name=region,
+            config=Config(
+                read_timeout=900,
+                connect_timeout=30,
+                retries={"max_attempts": 0},
+            ),
+        )
 
         # Invoke specialist agent runtime (using AWS sample format)
         response = agentcore_client.invoke_agent_runtime(

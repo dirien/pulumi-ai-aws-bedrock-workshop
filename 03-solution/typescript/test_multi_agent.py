@@ -22,8 +22,41 @@ Examples:
 """
 
 import boto3
+from botocore.config import Config
 import json
 import sys
+import threading
+import time
+from contextlib import contextmanager
+
+
+@contextmanager
+def heartbeat(label, interval=10):
+    """Print '{label} ... waiting Ns' every `interval` seconds until the block exits.
+
+    Gives the user a visible signal that a long synchronous call is still alive,
+    which matters here because invoke_agent_runtime blocks until the agent
+    finishes — and A2A calls can take several minutes.
+    """
+    stop = threading.Event()
+    start = time.monotonic()
+
+    def tick():
+        while not stop.wait(interval):
+            elapsed = int(time.monotonic() - start)
+            print(f"   ⏳ {label} … still waiting ({elapsed}s)", flush=True)
+
+    t = threading.Thread(target=tick, daemon=True)
+    t.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        t.join(timeout=1)
+        print(
+            f"   ✓ {label} returned after {int(time.monotonic() - start)}s",
+            flush=True,
+        )
 
 
 def extract_region_from_arn(arn):
@@ -77,11 +110,13 @@ def test_agent(client, agent_arn, agent_name, prompt):
     print("-" * 80)
 
     try:
-        response = client.invoke_agent_runtime(
-            agentRuntimeArn=agent_arn,
-            qualifier="DEFAULT",
-            payload=json.dumps({"prompt": prompt}),
-        )
+        print(f"   → Invoking {agent_name} (this may take a few minutes for A2A flows)", flush=True)
+        with heartbeat(f"{agent_name} invoke"):
+            response = client.invoke_agent_runtime(
+                agentRuntimeArn=agent_arn,
+                qualifier="DEFAULT",
+                payload=json.dumps({"prompt": prompt}),
+            )
 
         print(f"Status: {response['ResponseMetadata']['HTTPStatusCode']}")
         print(f"Content Type: {response.get('contentType', 'N/A')}")
@@ -142,8 +177,18 @@ def test_multi_agent(orchestrator_arn, specialist_arn=None):
         print("Specialist Agent: Not provided (will test Orchestrator only)")
     print(f"Region: {region}")
 
-    # Create bedrock-agentcore client with extracted region
-    agentcore_client = boto3.client("bedrock-agentcore", region_name=region)
+    # Create bedrock-agentcore client with extracted region.
+    # A2A calls in the orchestrator can take minutes; bump the read timeout
+    # well past boto3's 60 s default so the test does not give up early.
+    agentcore_client = boto3.client(
+        "bedrock-agentcore",
+        region_name=region,
+        config=Config(
+            read_timeout=900,
+            connect_timeout=30,
+            retries={"max_attempts": 0},
+        ),
+    )
 
     test_results = []
 
@@ -167,7 +212,7 @@ def test_multi_agent(orchestrator_arn, specialist_arn=None):
         agentcore_client,
         orchestrator_arn,
         "Orchestrator",
-        "I need expert analysis. Please coordinate with the specialist agent to provide a comprehensive explanation of cloud computing architectures and best practices.",
+        "Please ask the specialist agent: in 3-4 sentences, what is serverless computing and when should I use it?",
     )
     test_results.append(("A2A Communication Test", result))
 
