@@ -92,7 +92,7 @@ pulumi new aws-typescript --name mcp-server --yes
 
 ```bash
 mkdir 02-mcp-server && cd 02-mcp-server
-pulumi new aws-python --name mcp-server --yes
+pulumi new aws-python --name mcp-server --runtime-options toolchain=uv --yes
 ```
 
 </div>
@@ -2407,6 +2407,7 @@ Now test the MCP server through the Gateway. Copy `test_mcp_server.py` from the 
 
 ```bash
 export GATEWAY_URL=$(pulumi stack output gatewayUrl)
+uv add mcp boto3
 python test_mcp_server.py $GATEWAY_URL $JWT_TOKEN
 ```
 

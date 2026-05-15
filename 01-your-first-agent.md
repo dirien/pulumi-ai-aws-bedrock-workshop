@@ -68,7 +68,7 @@ pulumi new aws-typescript --name my-first-agent --yes
 
 ```bash
 mkdir 01-my-first-agent && cd 01-my-first-agent
-pulumi new aws-python --name my-first-agent --yes
+pulumi new aws-python --name my-first-agent --runtime-options toolchain=uv --yes
 ```
 
 </div>
@@ -256,7 +256,7 @@ def handler(event, _context):
 
 ## Step 4: Create the buildspec
 
-Create `buildspec.yml` in the project root:
+Create `01-my-first-agent/buildspec.yml` in the project root:
 
 ```yaml
 version: 0.2
@@ -297,7 +297,13 @@ Now the big part. We'll build the infrastructure file step by step. Each section
 
 <div class="lang-tabs" markdown="1">
 
+#### Typescript Pulumi Project
+
 <div class="lang-tab" data-lang="typescript" markdown="1">
+
+```bash
+01-my-first-agent/index.ts
+```
 
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
@@ -328,7 +334,13 @@ const currentRegion = aws.getRegionOutput({});
 
 </div>
 
+#### Python Pulumi Project
+
 <div class="lang-tab" data-lang="python" markdown="1">
+
+```bash
+01-my-first-agent/__main__.py
+```
 
 ```python
 import hashlib
@@ -1633,7 +1645,9 @@ Once deployed, test it with the provided test script. First, grab the ARN from t
 export AGENT_ARN=$(pulumi stack output agentRuntimeArn)
 ```
 
-Create `test_basic_agent.py` (or copy from the solution folder):
+Create `01-my-first-agent/test_basic_agent.py` (or copy from the solution folder)
+
+Install boto3 dependency `uv add boto3`
 
 ```python
 #!/usr/bin/env python3
@@ -1674,7 +1688,7 @@ Run it:
 
 ```bash
 # Use Pulumi ESC to set the AWS credentials needed by the test script.
-pulumi env run aws-bedrock-workshop/dev -- python test_basic_agent.py $AGENT_ARN
+pulumi env run aws-bedrock-workshop/dev -- uv run python test_basic_agent.py $AGENT_ARN
 ```
 
 You should see a response from your agent.
