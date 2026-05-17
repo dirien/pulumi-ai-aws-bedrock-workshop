@@ -226,7 +226,7 @@ async def initialize_browser_session():
         await browser_session.start()
 
         bedrock_chat = ChatBedrockConverse(
-            model_id="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+            model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
             region_name=AWS_REGION,
         )
 
@@ -2407,6 +2407,14 @@ weather_agent = aws.bedrock.AgentcoreAgentRuntime(
 
 AgentCore emits logs and traces through the CloudWatch vended logs delivery system. Each channel requires three resources: a `LogDeliverySource` (what to deliver), a `LogDeliveryDestination` (where to send it), and a `LogDelivery` that links the two. Application logs go to a CloudWatch log group; traces go directly to X-Ray.
 
+> **One-time account prerequisite:** the X-Ray trace `LogDelivery` only works if the account's X-Ray **trace segment destination** is set to `CloudWatchLogs`. Otherwise `pulumi up` fails with `ValidationException: X-Ray Delivery Destination is supported with CloudWatch Logs as a Trace Segment Destination`. Run this once per account/region before the first deploy:
+>
+> ```bash
+> aws xray update-trace-segment-destination --destination CloudWatchLogs --region us-east-1
+> ```
+>
+> **Using the workshop-provided AWS account?** Skip this step — the trace segment destination is already configured for you.
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
@@ -2674,7 +2682,29 @@ This takes 5-10 minutes. Pulumi creates the Browser, Code Interpreter, and Memor
 
 ## Step 9: Test your deployment
 
-Copy `test_weather_agent.py` from the solution folder and run:
+Copy `test_weather_agent.py` from the solution folder. The script uses `boto3` to call the AgentCore runtime and to poll S3, so add it to the project first:
+
+<div class="lang-tabs" markdown="1">
+
+<div class="lang-tab" data-lang="typescript" markdown="1">
+
+```bash
+pip install boto3
+```
+
+</div>
+
+<div class="lang-tab" data-lang="python" markdown="1">
+
+```bash
+uv add boto3
+```
+
+</div>
+
+</div>
+
+Then run the test:
 
 ```bash
 export AGENT_ARN=$(pulumi stack output agentRuntimeArn)
