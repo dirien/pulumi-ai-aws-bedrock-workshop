@@ -16,7 +16,39 @@ import json
 import sys
 import time
 import subprocess
+import threading
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from botocore.config import Config
+
+
+@contextmanager
+def heartbeat(label, interval=10):
+    """Print '{label} ... still waiting Ns' every `interval` seconds until exit.
+
+    invoke_agent_runtime is synchronous and can block for minutes while the
+    agent runs the full pipeline. Without a heartbeat the user has no signal
+    that the call is alive.
+    """
+    stop = threading.Event()
+    start = time.monotonic()
+
+    def tick():
+        while not stop.wait(interval):
+            elapsed = int(time.monotonic() - start)
+            print(f"      {label} ... still waiting ({elapsed}s)", flush=True)
+
+    t = threading.Thread(target=tick, daemon=True)
+    t.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        t.join(timeout=1)
+        print(
+            f"      {label} returned after {int(time.monotonic() - start)}s",
+            flush=True,
+        )
 
 
 def main():
@@ -57,53 +89,42 @@ def main():
         failed += 1
 
     # --- Test 2: Invoke agent ---
-    print("[2/3] Invoking agent (first call may take 1-2 min for cold start)...")
+    # invoke_agent_runtime is synchronous — it blocks until the agent finishes
+    # the full pipeline (browser, code-gen, code-exec, memory, S3 write), which
+    # can take several minutes. Use a generous read_timeout and a heartbeat.
+    print("[2/3] Invoking agent (synchronous; may take several minutes)...")
+    invoke_start = datetime.now(timezone.utc)
     try:
-        timeout_config = Config(
-            read_timeout=180,
-            connect_timeout=30,
-            retries={"max_attempts": 0},
-        )
         client = boto3.client(
             "bedrock-agentcore",
             region_name=region,
-            config=timeout_config,
+            config=Config(
+                read_timeout=900,
+                connect_timeout=30,
+                retries={"max_attempts": 0},
+            ),
         )
 
-        response = client.invoke_agent_runtime(
-            agentRuntimeArn=agent_arn,
-            qualifier="DEFAULT",
-            payload=json.dumps({
-                "prompt": "What should I do this weekend in Richmond VA?"
-            }),
-        )
+        with heartbeat("invoke"):
+            response = client.invoke_agent_runtime(
+                agentRuntimeArn=agent_arn,
+                qualifier="DEFAULT",
+                payload=json.dumps({
+                    "prompt": "What should I do this weekend in Richmond VA?"
+                }),
+            )
 
         http_status = response["ResponseMetadata"]["HTTPStatusCode"]
-        raw = response["response"].read()
-        body = json.loads(raw.decode("utf-8"))
-
-        agent_status = body.get("status", "")
-
-        if http_status == 200 and agent_status == "Started":
-            print("      PASS - Agent responded: status=Started")
-            passed += 1
-        elif http_status == 200:
-            print("      PASS - Agent responded (HTTP 200)")
+        if http_status == 200:
+            print(f"      PASS - Agent returned HTTP {http_status}")
             passed += 1
         else:
-            print(f"      WARN - HTTP {http_status}")
-            passed += 1
+            print(f"      FAIL - Agent returned HTTP {http_status}")
+            failed += 1
 
     except Exception as e:
-        error_msg = str(e)
-        if "timed out" in error_msg.lower() or "timeout" in error_msg.lower():
-            print("      PASS - Agent invoked (cold start in progress)")
-            print("             The container is loading dependencies.")
-            print("             This is normal for the first call.")
-            passed += 1
-        else:
-            print(f"      FAIL - {error_msg[:200]}")
-            failed += 1
+        print(f"      FAIL - {str(e)[:200]}")
+        failed += 1
 
     # --- Test 3: Wait for Markdown report in S3 ---
     print("[3/3] Waiting for Markdown report in S3...")
@@ -125,33 +146,37 @@ def main():
         print("             Run: pulumi stack output resultsBucketName")
     else:
         s3 = boto3.client("s3", region_name=region)
+        log_group = f"/aws/bedrock-agentcore/runtimes/{runtime_id}-DEFAULT"
+        print(f"      Tail live logs: aws logs tail \"{log_group}\" --region {region} --follow")
+        print(f"      (only counting reports written after {invoke_start.isoformat()})")
         found = False
         max_attempts = 24  # 24 x 15s = 6 min
         for attempt in range(max_attempts):
             time.sleep(15)
             try:
-                objects = s3.list_objects_v2(Bucket=bucket, MaxKeys=10)
-                if objects.get("KeyCount", 0) > 0:
-                    keys = [o["Key"] for o in objects["Contents"]]
-                    md_files = [k for k in keys if k.endswith(".md")]
-                    if md_files:
-                        print(f"      PASS - Markdown report found: {md_files[0]}")
-                        # Show a preview
-                        obj = s3.get_object(Bucket=bucket, Key=md_files[0])
-                        content = obj["Body"].read().decode("utf-8")
-                        preview = content[:500]
-                        print()
-                        print("      --- Report preview ---")
-                        for line in preview.split("\n"):
-                            print(f"      {line}")
-                        if len(content) > 500:
-                            print("      ...")
-                        print(f"      --- ({len(content)} chars total) ---")
-                        passed += 1
-                        found = True
-                        break
-                    elif keys:
-                        print(f"      Found files but no .md yet: {keys}")
+                objects = s3.list_objects_v2(Bucket=bucket, MaxKeys=20)
+                fresh_md = [
+                    o for o in objects.get("Contents", [])
+                    if o["Key"].endswith(".md") and o["LastModified"] >= invoke_start
+                ]
+                if fresh_md:
+                    fresh_md.sort(key=lambda o: o["LastModified"], reverse=True)
+                    key = fresh_md[0]["Key"]
+                    print(f"      PASS - Fresh Markdown report: {key}")
+                    print(f"             written at {fresh_md[0]['LastModified'].isoformat()}")
+                    obj = s3.get_object(Bucket=bucket, Key=key)
+                    content = obj["Body"].read().decode("utf-8")
+                    preview = content[:500]
+                    print()
+                    print("      --- Report preview ---")
+                    for line in preview.split("\n"):
+                        print(f"      {line}")
+                    if len(content) > 500:
+                        print("      ...")
+                    print(f"      --- ({len(content)} chars total) ---")
+                    passed += 1
+                    found = True
+                    break
             except Exception:
                 pass
 

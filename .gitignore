@@ -13,3 +13,4 @@ __pycache__/
 .venv/
 uv.lock
 Gemfile.lock
+xray-cwl-policy.json
