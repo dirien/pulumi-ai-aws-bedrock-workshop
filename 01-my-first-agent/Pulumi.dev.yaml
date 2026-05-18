@@ -1,0 +1,4 @@
+environment:
+  - lotctl/workshop-values
+config:
+  my-first-agent:stackName: agentcore-basic-lotctl
