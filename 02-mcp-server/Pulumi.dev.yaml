@@ -1,4 +1,0 @@
-environment:
-  - lotctl/workshop-values
-config:
-  mcp-server:stackName: agentcore-mcp-lotctl

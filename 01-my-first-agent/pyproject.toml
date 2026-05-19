@@ -1,9 +1,0 @@
-[project]
-name = "my-first-agent"
-version = "0.1.0"
-requires-python = ">=3.14"
-dependencies = [
-    "boto3>=1.43.6",
-    "pulumi>=3.0.0,<4.0.0",
-    "pulumi-aws>=7.0.0,<8.0.0",
-]
