@@ -4,6 +4,8 @@ A hands-on workshop where you build, deploy, and connect AI agents on AWS using 
 
 **Duration:** 3 hours | **Format:** Instructor-led, hands-on
 
+**Instructors:** Engin Diri (Senior Solutions Architect, Pulumi) & Adam Gordon Bell (Community Engineer, Pulumi)
+
 ## What you'll build
 
 By the end of this workshop, you will have deployed:
