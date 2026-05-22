@@ -74,7 +74,7 @@ pulumi new aws-typescript --name weather-agent --yes
 
 ```bash
 mkdir 04-weather-agent && cd 04-weather-agent
-pulumi new aws-python --name weather-agent --yes
+pulumi new aws-python --name weather-agent --runtime-options toolchain=uv --yes
 ```
 
 </div>
@@ -181,7 +181,6 @@ if missing:
 
 `initialize_browser_session` connects to the managed Browser resource using `BrowserClient`, gets a WebSocket URL back, and creates a `BrowserSession` that the `browser-use` library drives. A separate Claude Sonnet LLM call handles the browser automation decisions.
 
-{% raw %}
 ```python
 # Async helper functions
 async def run_browser_task(browser_session, bedrock_chat, task: str) -> str:
@@ -320,7 +319,6 @@ async def get_weather_data(city: str) -> Dict[str, Any]:
                 await browser_session.close()
             console.print("[green]✅ Browser session closed[/green]")
 ```
-{% endraw %}
 
 ### Code generation tool (generate_analysis_code)
 
@@ -668,7 +666,7 @@ def handler(event, _context):
 
 ## Step 6: Create the buildspec
 
-Create `buildspec.yml` in the project root:
+Create `04-weather-agent/buildspec.yml` in the project root:
 
 ```yaml
 version: 0.2
@@ -2708,7 +2706,7 @@ Then run the test:
 
 ```bash
 export AGENT_ARN=$(pulumi stack output agentRuntimeArn)
-python test_weather_agent.py $AGENT_ARN
+pulumi env run aws-bedrock-workshop/dev -- uv run test_weather_agent.py $AGENT_ARN
 ```
 
 The test script runs through the full pipeline:
@@ -2744,7 +2742,7 @@ You can also watch the agent work in real time via CloudWatch Logs:
 
 ```bash
 export RUNTIME_ID=$(pulumi stack output agentRuntimeId)
-aws logs tail "/aws/vendedlogs/bedrock-agentcore/${RUNTIME_ID}" --follow --region us-east-1
+pulumi env run aws-bedrock-workshop/dev -- aws logs tail "/aws/vendedlogs/bedrock-agentcore/${RUNTIME_ID}" --region us-east-1
 ```
 
 You'll see each step logged: browser session connecting, weather data scraped, Python code generated and executed, memory read, and the S3 write.
@@ -2754,11 +2752,11 @@ You'll see each step logged: browser session connecting, weather data scraped, P
 **Ask about a different city.** Invoke the agent again with a different location:
 
 ```bash
-python3 -c "
+pulumi env run aws-bedrock-workshop/dev -- uv run python -c "
 import boto3, json
 from botocore.config import Config
 client = boto3.client('bedrock-agentcore', region_name='us-east-1',
-    config=Config(read_timeout=180, retries={'max_attempts': 0}))
+    config=Config(read_timeout=360, retries={'max_attempts': 0}))
 r = client.invoke_agent_runtime(
     agentRuntimeArn='$(pulumi stack output agentRuntimeArn)',
     qualifier='DEFAULT',
@@ -2777,7 +2775,7 @@ Wait a few minutes and check S3 again. The new report should appear in the resul
 **Read the S3 report as Markdown.** Download the report and view it:
 
 ```bash
-aws s3 cp s3://$(pulumi stack output resultsBucketName)/results.md - | less
+pulumi env run aws-bedrock-workshop/dev -- aws s3 cp s3://$(pulumi stack output resultsBucketName)/results.md - | less
 ```
 
 ## What you learned

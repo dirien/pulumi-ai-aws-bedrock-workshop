@@ -2639,8 +2639,8 @@ You can also invoke the specialist directly to verify it works independently:
 
 ```bash
 export SPEC_ARN=$(pulumi stack output specialistRuntimeArn)
-python3 -c "
-import boto3, json
+pulumi env run aws-bedrock-workshop/dev -- uv run python -c "
+import boto3, json, os
 client = boto3.client('bedrock-agentcore', region_name='us-east-1')
 r = client.invoke_agent_runtime(
     agentRuntimeArn='$SPEC_ARN',
