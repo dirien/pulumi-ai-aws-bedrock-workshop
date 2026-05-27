@@ -33,10 +33,12 @@ We recommend using GitHub Codespaces with the included devcontainer for a zero-i
 |--------|-------|----------|
 | [Module 0](00-setup-and-orientation.md) | Setup and orientation | 15 min |
 | [Module 1](01-your-first-agent.md) | Your first agent on AgentCore | 30 min |
-| [Module 2](02-mcp-server-jwt-auth.md) | Hosting an MCP server behind an AgentCore Gateway | 45 min |
+| [Module 2](02-mcp-server-jwt-auth.md) | Hosting an MCP server behind an AgentCore Gateway _(Stretch goal)_ | 45 min |
 | [Module 3](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
-| [Module 4](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory | 40 min |
+| [Module 4](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |
 | [Module 5](05-housekeeping.md) | Cleanup | 10 min |
+
+Modules 2 and 4 are **stretch goals** for participants who finish the core path (Modules 0, 1, 3, 5) early. Each is its own Pulumi stack, so skipping them doesn't break anything later.
 
 ## Getting started
 

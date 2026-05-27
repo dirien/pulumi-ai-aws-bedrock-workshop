@@ -1724,7 +1724,7 @@ Then read `os.getenv("AGENT_MODE")` in your Python code and change the agent's b
 
 ## Step 8: Clean up
 
-Module 2 is a separate stack.
+Module 2 (and every other module) is a separate stack.
 Tear down the resources before moving on:
 
 ```bash
@@ -1740,4 +1740,6 @@ pulumi destroy --yes
 - Strands' `BedrockAgentCoreApp` wraps your Python agent as an HTTP-callable service
 - `pulumi up` orchestrates the entire pipeline in the right order using `dependsOn`
 
-Next up: [Module 2 - Hosting an MCP server behind an AgentCore Gateway](02-mcp-server-jwt-auth.md)
+Next up: [Module 3: Multi-agent orchestration](03-multi-agent-orchestration.md)
+
+> Got time to spare? [Module 2: Hosting an MCP server behind an AgentCore Gateway](02-mcp-server-jwt-auth.md) is a stretch goal. Tackle it now, or come back after the core path.

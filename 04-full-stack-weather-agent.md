@@ -1,6 +1,8 @@
 ---
 ---
-# Module 4: The full stack - weather agent with tools and memory
+# Module 4: The full stack: weather agent with tools and memory
+
+> **Stretch goal.** Skip this if you're keeping pace with the core path (Modules 0, 1, 3, 5) and come back to it later. It's a standalone Pulumi stack, so nothing downstream depends on it. The next core module is [Module 5: Cleanup](05-housekeeping.md).
 
 **Duration:** ~40 minutes
 

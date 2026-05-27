@@ -82,9 +82,10 @@ You should see your username.
 ## Tips for success
 
 1. **Follow the modules sequentially** - each one builds on concepts from the previous module
-2. **Complete the verification steps** at the end of each section to catch issues early
-3. **Ask your instructors for help** - we're here to keep you moving
-4. **Experiment** - once a module works, try modifying the agent prompt or tools to see what happens
+2. **Core path vs. stretch goals** - Modules 0, 1, 3, and 5 are the core path that fits the workshop slot. Modules 2 and 4 are stretch goals for anyone who finishes early. Each stretch module is its own Pulumi stack, so skipping one is fine; pick it up later
+3. **Complete the verification steps** at the end of each section to catch issues early
+4. **Ask your instructors for help** - we're here to keep you moving
+5. **Experiment** - once a module works, try modifying the agent prompt or tools to see what happens
 
 ## Getting started
 
@@ -211,9 +212,9 @@ For example, if your identifier is `ed`:
 
 ```
 Module 1: agentcore-basic-ed
-Module 2: agentcore-mcp-ed
+Module 2: agentcore-mcp-ed       (stretch goal)
 Module 3: agentcore-multi-ed
-Module 4: agentcore-weather-ed
+Module 4: agentcore-weather-ed   (stretch goal)
 ```
 
 You set this at the start of each module with:
@@ -228,7 +229,7 @@ Keep this identifier consistent across all modules. Write it down.
 
 Each module has a markdown file with instructions (what you're reading now) and solution folders (e.g., `01-solution/typescript/` and `01-solution/python/`) with the complete working code in both languages if you get stuck.
 
-The modules build on each other. By Module 4, you'll have deployed a multi-tool agent that browses websites, runs Python code, and remembers user preferences.
+The core path runs 0 → 1 → 3 → 5. By the end you'll have an orchestrator that delegates to a specialist agent. Modules 2 and 4 are stretch goals for anyone who finishes early: an authenticated MCP server (Module 2) and a multi-tool weather agent with Browser, Code Interpreter, and Memory (Module 4).
 
 ## What you learned
 

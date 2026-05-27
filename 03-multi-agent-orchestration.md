@@ -2670,4 +2670,6 @@ print(r['response'].read().decode())
 - IAM permissions are one-directional - only the orchestrator's execution role holds the `InvokeAgentRuntime` permission
 - AgentCore handles streaming responses between agents; the orchestrator's response handler must account for multiple content-type formats
 
-Next up: [Module 4 - The full stack: weather agent with tools and memory](04-full-stack-weather-agent.md)
+Next up: [Module 5: Cleanup](05-housekeeping.md)
+
+> Got time to spare? [Module 4: The full stack: weather agent with tools and memory](04-full-stack-weather-agent.md) is a stretch goal. Tackle it now, or come back after the core path.

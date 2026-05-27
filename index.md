@@ -44,11 +44,12 @@ Your agents will deploy as containerized services on AgentCore Runtime, authenti
 |---------|-------|----------|
 | [00](00-setup-and-orientation.md) | Setup and orientation | 15 min |
 | [01](01-your-first-agent.md) | Your first agent on AgentCore | 30 min |
-| [02](02-mcp-server-jwt-auth.md) | Hosting an MCP server behind an AgentCore Gateway | 45 min |
+| [02](02-mcp-server-jwt-auth.md) | Hosting an MCP server behind an AgentCore Gateway _(Stretch goal)_ | 45 min |
 | [03](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
-| [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory | 40 min |
+| [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |
 | [05](05-housekeeping.md) | Cleanup | 10 min |
-| | **Total** | **180 min** |
+| | **Core path** | **95 min** |
+| | **With stretch goals** | **180 min** |
 
 ## Prerequisites
 
@@ -66,6 +67,15 @@ We recommend **GitHub Codespaces** for a zero-install experience. Click the badg
 | Machine type | Cores | RAM | Recommended |
 |-------------|-------|-----|-------------|
 | Standard | 4-core | 16 GB | Yes |
+
+### Core path vs. stretch goals
+
+The workshop fits the time slot if you stick to the **core path**: Modules 0, 1, 3, and 5. Modules 2 and 4 are **stretch goals**, extra material for anyone who races through the core and wants more:
+
+- **Module 2 _(Stretch goal)_**: MCP server behind an AgentCore Gateway with JWT auth and Cedar policies
+- **Module 4 _(Stretch goal)_**: Full-stack weather agent with Browser, Code Interpreter, and Memory tools
+
+Each stretch module is its own Pulumi stack, so skipping one doesn't break anything later. You can always come back to them after the workshop.
 
 ## Troubleshooting
 

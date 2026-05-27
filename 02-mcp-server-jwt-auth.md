@@ -2,6 +2,8 @@
 ---
 # Module 2: Hosting an MCP server behind an AgentCore Gateway
 
+> **Stretch goal.** Skip this if you're keeping pace with the core path (Modules 0, 1, 3, 5) and come back to it later. It's a standalone Pulumi stack, so nothing downstream depends on it. The next core module is [Module 3: Multi-agent orchestration](03-multi-agent-orchestration.md).
+
 **Duration:** ~45 minutes
 
 ## What you'll learn
