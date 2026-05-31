@@ -10,15 +10,19 @@
 - How they connect to each other
 - How to store AWS credentials securely in a Pulumi ESC environment
 
+## Glossary
+
+New to a term? See the [Glossary](glossary.md) for every acronym used in this workshop.
+
 ## The big picture
 
 Before we write any code, here's how the pieces fit together.
 
 **Amazon Bedrock AgentCore** is a managed runtime for AI agents. You give it a container image with your agent code, and it handles hosting, scaling, and invocation. Think of it as "Lambda for agents": you don't manage servers, you just deploy a container and call it.
 
-**Strands SDK** is a Python framework for writing agents. You define a system prompt, attach tools, and Strands handles the conversation loop with the LLM. It has a built-in `BedrockAgentCoreApp` class that wraps your agent as an HTTP service compatible with AgentCore Runtime.
+**Strands SDK** (software development kit) is a Python framework for writing agents. You define a system prompt, attach tools, and Strands handles the conversation loop with the LLM (large language model). It has a built-in `BedrockAgentCoreApp` class that wraps your agent as an HTTP service compatible with AgentCore Runtime.
 
-**Pulumi** is the infrastructure-as-code tool we use to define and deploy everything: S3 buckets, ECR repositories, IAM roles, CodeBuild projects, and the AgentCore runtimes themselves. You can choose either TypeScript or Python for the infrastructure code.
+**Pulumi** is the infrastructure-as-code tool we use to define and deploy everything: S3 (Simple Storage Service) buckets, ECR (Elastic Container Registry) repositories, IAM (Identity and Access Management) roles, CodeBuild projects, and the AgentCore runtimes themselves. You can choose either TypeScript or Python for the infrastructure code.
 
 **Pulumi ESC** (Environments, Secrets, and Configuration) is Pulumi's centralized secrets and configuration store. Instead of exporting AWS access keys in your shell or scattering them across `.env` files, ESC stores them encrypted and injects them automatically when you run `pulumi up`. Secrets are encrypted at rest and never appear in plain text in your Pulumi state.
 
@@ -94,7 +98,7 @@ Click the badge below to launch a pre-configured development environment:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dirien/pulumi-ai-aws-bedrock-workshop?quickstart=1)
 
-Wait for the devcontainer to build (takes a couple of minutes). All tools (Pulumi CLI, Node.js, Python, uv) are pre-installed.
+Wait for the devcontainer to build (takes a couple of minutes). All tools (Pulumi CLI (command-line interface), Node.js, Python, uv) are pre-installed.
 
 ### Option 2: Local development
 

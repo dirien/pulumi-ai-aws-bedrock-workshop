@@ -12,6 +12,10 @@
 - How to handle streaming responses between agents
 - How sequential build dependencies work in Pulumi
 
+## Glossary
+
+New to a term? See the [Glossary](glossary.md) for every acronym used in this workshop.
+
 ## Key concepts
 
 ### Agent-to-Agent (A2A) communication on AgentCore

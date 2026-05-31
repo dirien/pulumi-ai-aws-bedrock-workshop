@@ -12,6 +12,10 @@
 - How to set up observability with CloudWatch vended logs and X-Ray traces
 - How the Memory API stores and retrieves structured data
 
+## Glossary
+
+New to a term? See the [Glossary](glossary.md) for every acronym used in this workshop.
+
 ## Key concepts
 
 ### AgentCore managed tools
@@ -22,7 +26,7 @@
 
 **[Code Interpreter](https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcoreinterpreter/)** is a sandboxed Python runtime. Your agent generates Python code, sends it to Code Interpreter via the `CodeInterpreter` client, and gets stdout/stderr back. This is useful for calculations, data transformation, or anything where running code is more reliable than asking the LLM to compute an answer from text alone.
 
-**[Memory](https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcorememory/)** is a persistent event store. You write events with JSON blob payloads tagged with `actorId` and `sessionId`, and read them back later. Events expire after a configurable TTL. In this module the agent uses it to store activity preferences (what to do in good vs. poor weather) that survive between invocations.
+**[Memory](https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcorememory/)** is a persistent event store. You write events with JSON blob payloads tagged with `actorId` and `sessionId`, and read them back later. Events expire after a configurable TTL (time to live). In this module the agent uses it to store activity preferences (what to do in good vs. poor weather) that survive between invocations.
 
 ### Weather agent workflow
 

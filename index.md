@@ -7,7 +7,7 @@ title: Home
 
 Welcome to the Deploying AI Agents on AWS workshop.
 
-In this hands-on workshop, you'll learn how to build, deploy, and connect AI agents on AWS using Pulumi and Amazon Bedrock AgentCore. By the end, you'll have a multi-tool agent that browses the web, runs Python code, remembers user preferences, and writes reports to S3.
+In this hands-on workshop, you'll learn how to build, deploy, and connect AI agents on AWS using Pulumi and Amazon Bedrock AgentCore. By the end, you'll have a multi-tool agent that browses the web, runs Python code, remembers user preferences, and writes reports to S3 (Simple Storage Service).
 
 ## What you'll build
 
@@ -36,7 +36,7 @@ flowchart TD
     style H fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
 ```
 
-Your agents will deploy as containerized services on AgentCore Runtime, authenticate with JWT tokens via Cognito, enforce access control with Cedar policies, and communicate agent-to-agent using IAM-scoped invocations.
+Your agents will deploy as containerized services on AgentCore Runtime, authenticate with JWT (JSON Web Token) tokens via Cognito, enforce access control with Cedar policies, and communicate agent-to-agent using IAM (Identity and Access Management)-scoped invocations.
 
 ## Workshop chapters
 
@@ -49,6 +49,8 @@ Your agents will deploy as containerized services on AgentCore Runtime, authenti
 | [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory | 40 min |
 | [05](05-housekeeping.md) | Cleanup | 10 min |
 | | **Total** | **180 min** |
+
+New to the terminology? The [Glossary](glossary.md) lists every acronym used in the workshop.
 
 ## Prerequisites
 
@@ -69,7 +71,7 @@ We recommend **GitHub Codespaces** for a zero-install experience. Click the badg
 
 ## Troubleshooting
 
-**`pulumi up` hangs during CodeBuild**: The first build takes 5-10 minutes while Docker images are built and pushed to ECR. This is normal.
+**`pulumi up` hangs during CodeBuild**: The first build takes 5-10 minutes while Docker images are built and pushed to ECR (Elastic Container Registry). This is normal.
 
 **AWS credentials expired**: Run `pulumi env open aws-bedrock-workshop/dev` to verify your credentials are configured correctly, then retry.
 

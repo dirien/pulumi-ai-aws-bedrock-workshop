@@ -8,10 +8,14 @@
 
 - What the Model Context Protocol (MCP) is and why it matters for agent-tool communication
 - How to build an MCP server with FastMCP in Python
-- How to deploy an AgentCore Gateway that secures your MCP server with JWT tokens from Cognito
+- How to deploy an AgentCore Gateway that secures your MCP server with JWT (JSON Web Token) tokens from Cognito
 - How to use Pulumi secrets for sensitive config
 - How AgentCore's Policy Engine enforces fine-grained access control using Cedar policies
 - How to combine `pulumi-aws` and `pulumi-aws-native` in one program when a resource only ships in one of them
+
+## Glossary
+
+New to a term? See the [Glossary](glossary.md) for every acronym used in this workshop.
 
 ## Key concepts
 
@@ -29,7 +33,7 @@ The transport we use here is Stateless Streamable HTTP. Each request is independ
 
 The [AgentCore Gateway](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway.html) is the front door for clients calling your MCP tools. It handles JWT token validation, routes requests to the correct backend, and enforces Cedar access policies - all before your server code sees a single request. Your MCP server never deals with auth; the Gateway handles it.
 
-A [Gateway Target](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-add-target-api-target-config.html) connects the Gateway to a backend - in our case, an AgentCore-hosted MCP server runtime. The Gateway uses its IAM role to call the runtime via SigV4-signed requests.
+A [Gateway Target](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-add-target-api-target-config.html) connects the Gateway to a backend - in our case, an AgentCore-hosted MCP server runtime. The Gateway uses its IAM role to call the runtime via SigV4 (AWS Signature Version 4)-signed requests.
 
 The [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html) is the containerized service that runs your MCP server. Like Module 1, you point it at a Docker image in ECR and AgentCore manages the rest. The runtime itself has no auth - that's the Gateway's job.
 
@@ -2067,7 +2071,7 @@ mcp_gateway = aws_native.bedrockagentcore.Gateway(
 
 </div>
 
-The `authorizerConfiguration.customJwtAuthorizer` ties the Gateway to your Cognito User Pool. `discoveryUrl` is the OIDC discovery endpoint and `allowedClients` restricts access to tokens issued for your app client ID. The Gateway exposes a URL (`gatewayUrl`) that clients use instead of calling the runtime directly.
+The `authorizerConfiguration.customJwtAuthorizer` ties the Gateway to your Cognito User Pool. `discoveryUrl` is the OIDC (OpenID Connect) discovery endpoint and `allowedClients` restricts access to tokens issued for your app client ID. The Gateway exposes a URL (`gatewayUrl`) that clients use instead of calling the runtime directly.
 
 ### Gateway Target
 

@@ -38,6 +38,8 @@ We recommend using GitHub Codespaces with the included devcontainer for a zero-i
 | [Module 4](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory | 40 min |
 | [Module 5](05-housekeeping.md) | Cleanup | 10 min |
 
+New to the terminology? The [Glossary](glossary.md) lists every acronym used in the workshop.
+
 ## Getting started
 
 ### Option A: GitHub Codespaces (recommended)
@@ -75,6 +77,7 @@ We recommend using GitHub Codespaces with the included devcontainer for a zero-i
 ├── 03-multi-agent-orchestration.md # Module 3: A2A communication
 ├── 04-full-stack-weather-agent.md  # Module 4: Full stack agent
 ├── 05-housekeeping.md              # Module 5: Cleanup
+├── glossary.md                     # Acronyms used across the workshop
 ├── 01-solution/typescript/         # Module 1 solution code
 ├── 02-solution/typescript/         # Module 2 solution code
 ├── 03-solution/typescript/         # Module 3 solution code

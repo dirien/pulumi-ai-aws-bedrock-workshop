@@ -11,13 +11,17 @@
 - How to define the infrastructure in Pulumi (TypeScript or Python)
 - How to deploy, invoke, and tear down an agent
 
+## Glossary
+
+New to a term? See the [Glossary](glossary.md) for every acronym used in this workshop.
+
 ## Key concepts
 
 Before you start coding, let's cover the two core technologies this module uses.
 
 ### Amazon Bedrock AgentCore
 
-[Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) is a managed service for hosting, securing, and scaling AI agents. Instead of running agents on EC2 instances or ECS tasks and managing scaling yourself, you package your agent as a Docker container and hand it to AgentCore. It handles the rest: pulling your image, running it on ARM64 infrastructure, routing invocations, and managing the lifecycle.
+[Amazon Bedrock AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html) is a managed service for hosting, securing, and scaling AI agents. Instead of running agents on EC2 (Elastic Compute Cloud) instances or ECS (Elastic Container Service) tasks and managing scaling yourself, you package your agent as a Docker container and hand it to AgentCore. It handles the rest: pulling your image, running it on ARM64 infrastructure, routing invocations, and managing the lifecycle.
 
 An [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html) is the core resource. It's a containerized service that AgentCore runs for you. You point it at a Docker image in ECR, give it an IAM execution role, and AgentCore takes care of networking, health checks, and invocation routing.
 
@@ -361,7 +365,7 @@ current_region = aws.get_region_output()
 
 </div>
 
-The config values let you customize the deployment without touching code. `getCallerIdentityOutput` and `getRegionOutput` fetch your AWS account ID and region at deploy time - we'll use these in IAM policy ARNs.
+The config values let you customize the deployment without touching code. `getCallerIdentityOutput` and `getRegionOutput` fetch your AWS account ID and region at deploy time - we'll use these in IAM policy ARNs (Amazon Resource Names).
 
 ### S3 bucket for agent source code
 
