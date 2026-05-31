@@ -42,7 +42,7 @@ Your agents will deploy as containerized services on AgentCore Runtime, authenti
 
 | Chapter | Title | Duration |
 |---------|-------|----------|
-| [00](00-setup-and-orientation.md) | Setup and orientation | 15 min |
+| [00](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
 | [01](01-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [02](02-mcp-server-jwt-auth.md) | Hosting an MCP server behind an AgentCore Gateway _(Stretch goal)_ | 45 min |
 | [03](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |

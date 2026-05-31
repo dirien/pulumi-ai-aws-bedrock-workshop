@@ -1,30 +1,42 @@
 ---
 ---
-# Module 0: Setup and orientation
+# Module 0: Setup, orientation and intro
 
 **Duration:** ~15 minutes
 
 ## What you'll learn
 
-- What Amazon Bedrock AgentCore, Strands SDK, and Pulumi ESC are
-- How they connect to each other
+- What Infrastructure as Code, Pulumi, Pulumi Cloud, Amazon Bedrock, and AgentCore are
+- What the Strands SDK and Pulumi ESC are, and how all the pieces connect
 - How to store AWS credentials securely in a Pulumi ESC environment
 
-## Glossary
+## Intro: the basics in five minutes
 
-New to a term? See the [Glossary](glossary.md) for every acronym used in this workshop.
+New to any of these tools? Here's the speed-run. The [Glossary](glossary.md) lists every acronym used in the workshop if you'd rather skim definitions.
+
+**[Infrastructure as Code](https://www.pulumi.com/what-is/what-is-infrastructure-as-code/)** is the practice of defining your cloud resources, like servers, databases, networks, and IAM (Identity and Access Management) roles, in source files instead of clicking through a web console. You write the desired state in code, commit it to git, and a tool reconciles your cloud account to match. The payoff: infrastructure you can review in a pull request and rebuild the same way every time.
+
+![Infrastructure as Code workflow: an engineer writes IaC, commits it to a version control system, and a CI/CD server runs tests and provisions AWS resources such as ELB, EC2, a database, and an S3 bucket.](assets/images/infrastructure-as-code.png)
+
+**[Pulumi](https://www.pulumi.com/)** is the Infrastructure as Code tool we use here. The twist: you write infrastructure in real programming languages like TypeScript, Python, or Go instead of a bespoke config format. That means loops, functions, types, and autocomplete from your editor. You can pick either TypeScript or Python for this workshop; the solution folders have both. You describe what you want (an S3 (Simple Storage Service) bucket, an ECR (Elastic Container Registry) repository, an AgentCore runtime), run `pulumi up`, and Pulumi works out what to create, update, or delete to get there.
+
+**[Pulumi Cloud](https://app.pulumi.com)** is the managed backend behind the [Pulumi CLI](https://www.pulumi.com/docs/install/) (command-line interface). It stores the *state* of your infrastructure (the record of what Pulumi has deployed), shows deployment history, and hosts **[Pulumi ESC](https://www.pulumi.com/docs/esc/)** (Environments, Secrets, and Configuration), a centralized store for secrets and config. You'll use ESC to hold your AWS credentials encrypted so they never live in a `.env` file or your shell history. A free account is all you need.
+
+**[Amazon Bedrock](https://aws.amazon.com/bedrock/)** is AWS's managed service for foundation models. A single API (application programming interface) reaches a range of large language models (LLMs) such as Anthropic Claude and Amazon Nova, so you're not provisioning GPUs or hosting models yourself. Your agents call Bedrock to do the actual "thinking."
+
+![Amazon Bedrock capabilities overview: models and inference (models, fine-tuning, knowledge bases, distillation) alongside agent development, including AgentCore and Bedrock Managed Agents, all under shared security, guardrails, and governance.](assets/images/amazon-bedrock.png)
+
+**[Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/)** is the newer, agent-focused layer on top. It's a managed runtime for AI agents: you hand it a container image with your agent code and it handles hosting, scaling, and invocation. Think "Lambda for agents": no servers to manage, just deploy a container and call it. Throughout the workshop, Pulumi provisions the AgentCore runtimes (and everything around them), and your agents run on AgentCore while calling Bedrock models.
+
+![Amazon Bedrock AgentCore capabilities: tools and memory (Memory, Gateway, Browser tool, Code Interpreter), secure runtime and identity for deploying at scale, observability for operational insight, plus open-source support for MCP and A2A protocols and frameworks like Strands Agents.](assets/images/bedrock-agentcore.png)
+
+That's the whole stack: **Pulumi** (in TypeScript or Python) deploys infrastructure, **Pulumi Cloud + ESC** store state and secrets, and your **[Strands](https://strandsagents.com/)**-based agents run on **AgentCore** and call **Bedrock** models. The next section shows how they wire together.
 
 ## The big picture
 
-Before we write any code, here's how the pieces fit together.
+The intro covered the tools on their own. Here's how they fit together when you actually deploy.
 
-**Amazon Bedrock AgentCore** is a managed runtime for AI agents. You give it a container image with your agent code, and it handles hosting, scaling, and invocation. Think of it as "Lambda for agents": you don't manage servers, you just deploy a container and call it.
-
-**Strands SDK** (software development kit) is a Python framework for writing agents. You define a system prompt, attach tools, and Strands handles the conversation loop with the LLM (large language model). It has a built-in `BedrockAgentCoreApp` class that wraps your agent as an HTTP service compatible with AgentCore Runtime.
-
-**Pulumi** is the infrastructure-as-code tool we use to define and deploy everything: S3 (Simple Storage Service) buckets, ECR (Elastic Container Registry) repositories, IAM (Identity and Access Management) roles, CodeBuild projects, and the AgentCore runtimes themselves. You can choose either TypeScript or Python for the infrastructure code.
-
-**Pulumi ESC** (Environments, Secrets, and Configuration) is Pulumi's centralized secrets and configuration store. Instead of exporting AWS access keys in your shell or scattering them across `.env` files, ESC stores them encrypted and injects them automatically when you run `pulumi up`. Secrets are encrypted at rest and never appear in plain text in your Pulumi state.
+One piece the intro skipped: the **Strands SDK** (software development kit), the Python framework you'll write agents with. You define a system prompt, attach tools, and Strands runs the conversation loop with the LLM for you. Its built-in `BedrockAgentCoreApp` class wraps your agent as an HTTP (Hypertext Transfer Protocol) service that AgentCore Runtime knows how to invoke. That's the bridge between the code you write and the runtime Pulumi provisions.
 
 Here's the flow:
 
@@ -42,7 +54,7 @@ AgentCore Runtime runs your agent
 
 ## Step 1: Log into Pulumi Cloud
 
-If you haven't already, create a free Pulumi account. 
+If you haven't already, create a free Pulumi account.
 
 ### Codespaces Users and Optionally Local Terminal Users
 
@@ -99,7 +111,7 @@ Click the badge below to launch a pre-configured development environment:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dirien/pulumi-ai-aws-bedrock-workshop?quickstart=1)
 
-Wait for the devcontainer to build (takes a couple of minutes). All tools (Pulumi CLI (command-line interface), Node.js, Python, uv) are pre-installed.
+Wait for the devcontainer to build (takes a couple of minutes). All tools (Pulumi CLI, Node.js, Python, uv) are pre-installed.
 
 ### Option 2: Local development
 
@@ -237,7 +249,8 @@ The core path runs 0 → 1 → 3 → 5. By the end you'll have an orchestrator t
 
 ## What you learned
 
-- AgentCore is a managed container runtime for AI agents
+- Infrastructure as Code defines cloud resources in source files; Pulumi does it in real languages (TypeScript or Python here)
+- Pulumi Cloud stores your stack state and hosts ESC; Bedrock serves the LLMs and AgentCore runs your agent containers
 - Strands SDK is the Python framework for writing agent logic
 - Pulumi ESC stores AWS credentials encrypted and injects them into every deployment automatically
 - Your local setup can authenticate with AWS and run `pulumi preview`

@@ -31,7 +31,7 @@ We recommend using GitHub Codespaces with the included devcontainer for a zero-i
 
 | Module | Topic | Duration |
 |--------|-------|----------|
-| [Module 0](00-setup-and-orientation.md) | Setup and orientation | 15 min |
+| [Module 0](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
 | [Module 1](01-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [Module 2](02-mcp-server-jwt-auth.md) | Hosting an MCP server behind an AgentCore Gateway _(Stretch goal)_ | 45 min |
 | [Module 3](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
