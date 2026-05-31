@@ -13,4 +13,8 @@ __pycache__/
 .venv/
 uv.lock
 Gemfile.lock
-xray-cwl-policy.json
+
+01-my-first-agent/
+02-mcp-server/
+03-multi-agent/
+04-weather-agent/

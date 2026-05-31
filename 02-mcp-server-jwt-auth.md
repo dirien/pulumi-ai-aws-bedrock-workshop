@@ -2,6 +2,8 @@
 ---
 # Module 2: Hosting an MCP server behind an AgentCore Gateway
 
+> **Stretch goal.** Skip this if you're keeping pace with the core path (Modules 0, 1, 3, 5) and come back to it later. It's a standalone Pulumi stack, so nothing downstream depends on it. The next core module is [Module 3: Multi-agent orchestration](03-multi-agent-orchestration.md).
+
 **Duration:** ~45 minutes
 
 ## What you'll learn
@@ -96,7 +98,7 @@ pulumi new aws-typescript --name mcp-server --yes
 
 ```bash
 mkdir 02-mcp-server && cd 02-mcp-server
-pulumi new aws-python --name mcp-server --yes
+pulumi new aws-python --name mcp-server --runtime-options toolchain=uv --yes
 ```
 
 </div>
@@ -2411,6 +2413,7 @@ Now test the MCP server through the Gateway. Copy `test_mcp_server.py` from the 
 
 ```bash
 export GATEWAY_URL=$(pulumi stack output gatewayUrl)
+uv add mcp boto3
 python test_mcp_server.py $GATEWAY_URL $JWT_TOKEN
 ```
 

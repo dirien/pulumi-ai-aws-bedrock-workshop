@@ -72,7 +72,7 @@ pulumi new aws-typescript --name my-first-agent --yes
 
 ```bash
 mkdir 01-my-first-agent && cd 01-my-first-agent
-pulumi new aws-python --name my-first-agent --yes
+pulumi new aws-python --name my-first-agent --runtime-options toolchain=uv --yes
 ```
 
 </div>
@@ -260,7 +260,7 @@ def handler(event, _context):
 
 ## Step 4: Create the buildspec
 
-Create `buildspec.yml` in the project root:
+Create `01-my-first-agent/buildspec.yml` in the project root:
 
 ```yaml
 version: 0.2
@@ -301,7 +301,13 @@ Now the big part. We'll build the infrastructure file step by step. Each section
 
 <div class="lang-tabs" markdown="1">
 
+#### Typescript Pulumi Project
+
 <div class="lang-tab" data-lang="typescript" markdown="1">
+
+```bash
+01-my-first-agent/index.ts
+```
 
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
@@ -332,7 +338,13 @@ const currentRegion = aws.getRegionOutput({});
 
 </div>
 
+#### Python Pulumi Project
+
 <div class="lang-tab" data-lang="python" markdown="1">
+
+```bash
+01-my-first-agent/__main__.py
+```
 
 ```python
 import hashlib
@@ -1637,7 +1649,9 @@ Once deployed, test it with the provided test script. First, grab the ARN from t
 export AGENT_ARN=$(pulumi stack output agentRuntimeArn)
 ```
 
-Create `test_basic_agent.py` (or copy from the solution folder):
+Create `01-my-first-agent/test_basic_agent.py` (or copy from the solution folder)
+
+Install boto3 dependency `uv add boto3`
 
 ```python
 #!/usr/bin/env python3
@@ -1678,7 +1692,7 @@ Run it:
 
 ```bash
 # Use Pulumi ESC to set the AWS credentials needed by the test script.
-pulumi env run aws-bedrock-workshop/dev -- python test_basic_agent.py $AGENT_ARN
+pulumi env run aws-bedrock-workshop/dev -- uv run python test_basic_agent.py $AGENT_ARN
 ```
 
 You should see a response from your agent.
@@ -1714,7 +1728,7 @@ Then read `os.getenv("AGENT_MODE")` in your Python code and change the agent's b
 
 ## Step 8: Clean up
 
-Module 2 is a separate stack.
+Module 2 (and every other module) is a separate stack.
 Tear down the resources before moving on:
 
 ```bash
@@ -1730,4 +1744,6 @@ pulumi destroy --yes
 - Strands' `BedrockAgentCoreApp` wraps your Python agent as an HTTP-callable service
 - `pulumi up` orchestrates the entire pipeline in the right order using `dependsOn`
 
-Next up: [Module 2 - Hosting an MCP server behind an AgentCore Gateway](02-mcp-server-jwt-auth.md)
+Next up: [Module 3: Multi-agent orchestration](03-multi-agent-orchestration.md)
+
+> Got time to spare? [Module 2: Hosting an MCP server behind an AgentCore Gateway](02-mcp-server-jwt-auth.md) is a stretch goal. Tackle it now, or come back after the core path.

@@ -1,6 +1,6 @@
 ---
 ---
-# Module 5: Housekeeping
+# Module 5: Cleanup
 
 **Duration:** ~10 minutes
 
@@ -10,7 +10,9 @@ Each module created AWS resources that cost money while they're running. Let's t
 
 Destroy the stacks in reverse order. Module 4 first, then 3, 2, 1. The order matters because later modules don't depend on earlier ones (they're separate stacks), but going in reverse is a good habit.
 
-### Module 4: Weather agent
+> If you skipped the stretch goals (Modules 2 and 4), skip those sections below too. There's nothing to tear down for stacks you never created.
+
+### Module 4: Weather agent _(stretch goal, skip if not deployed)_
 
 ```bash
 cd 04-weather-agent
@@ -28,7 +30,7 @@ pulumi destroy --yes
 cd ..
 ```
 
-### Module 2: MCP server
+### Module 2: MCP server _(stretch goal, skip if not deployed)_
 
 ```bash
 cd 02-mcp-server

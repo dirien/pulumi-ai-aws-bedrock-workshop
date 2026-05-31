@@ -2643,8 +2643,8 @@ You can also invoke the specialist directly to verify it works independently:
 
 ```bash
 export SPEC_ARN=$(pulumi stack output specialistRuntimeArn)
-python3 -c "
-import boto3, json
+pulumi env run aws-bedrock-workshop/dev -- uv run python -c "
+import boto3, json, os
 client = boto3.client('bedrock-agentcore', region_name='us-east-1')
 r = client.invoke_agent_runtime(
     agentRuntimeArn='$SPEC_ARN',
@@ -2674,4 +2674,6 @@ print(r['response'].read().decode())
 - IAM permissions are one-directional - only the orchestrator's execution role holds the `InvokeAgentRuntime` permission
 - AgentCore handles streaming responses between agents; the orchestrator's response handler must account for multiple content-type formats
 
-Next up: [Module 4 - The full stack: weather agent with tools and memory](04-full-stack-weather-agent.md)
+Next up: [Module 5: Cleanup](05-housekeeping.md)
+
+> Got time to spare? [Module 4: The full stack: weather agent with tools and memory](04-full-stack-weather-agent.md) is a stretch goal. Tackle it now, or come back after the core path.
