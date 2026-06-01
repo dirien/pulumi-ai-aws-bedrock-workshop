@@ -747,6 +747,13 @@ if __name__ == "__main__":
     main()
 ```
 
+The script needs `boto3`. Install it if you haven't already (Codespaces has it
+preinstalled, so you can skip this there):
+
+```bash
+pip install boto3
+```
+
 Grab the runtime ARN from the stack output and run the script. `pulumi env run`
 injects the AWS credentials it needs:
 
