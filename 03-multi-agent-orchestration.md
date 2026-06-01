@@ -439,18 +439,62 @@ phases:
 
 ## Step 5: Create the build trigger Lambda
 
-Copy the build trigger Lambda from Module 1. The function is reused here without modification - create the directory and copy the code:
+Module 2 shipped a ZIP straight to AgentCore. This module deploys **container
+images** instead, which is the other way to run an agent on AgentCore - so it needs
+CodeBuild to run the Docker build and a small Lambda to drive it. The Lambda starts a
+CodeBuild job and polls until the build finishes, then returns, so Pulumi waits for
+the image to be ready before it creates the runtime.
 
-```bash
-mkdir -p lambda/build-trigger
-# copy index.py from 01-my-first-agent/lambda/build-trigger/
+Create `lambda/build-trigger/index.py`:
+
+```python
+import json
+import logging
+import time
+
+import boto3
+
+
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.INFO)
+
+
+def handler(event, _context):
+    LOGGER.info("Received event: %s", json.dumps(event))
+
+    project_name = event["projectName"]
+    region = event.get("region")
+    poll_interval_seconds = int(event.get("pollIntervalSeconds", 15))
+
+    codebuild = boto3.client("codebuild", region_name=region)
+    response = codebuild.start_build(projectName=project_name)
+    build_id = response["build"]["id"]
+    LOGGER.info("Started build %s for project %s", build_id, project_name)
+
+    while True:
+        build_response = codebuild.batch_get_builds(ids=[build_id])
+        build = build_response["builds"][0]
+        status = build["buildStatus"]
+
+        if status == "SUCCEEDED":
+            LOGGER.info("Build %s succeeded", build_id)
+            return {
+                "buildId": build_id,
+                "status": status,
+                "imageDigest": build.get("resolvedSourceVersion"),
+            }
+
+        if status in {"FAILED", "FAULT", "STOPPED", "TIMED_OUT"}:
+            LOGGER.error("Build %s failed with status %s", build_id, status)
+            raise RuntimeError(f"CodeBuild {build_id} failed with status {status}")
+
+        LOGGER.info("Build %s status: %s", build_id, status)
+        time.sleep(poll_interval_seconds)
 ```
-
-The Lambda starts a CodeBuild job and polls until the build finishes, then returns. Pulumi waits for the Lambda invocation to complete before moving on to the next resource.
 
 ## Step 6: Write the Pulumi infrastructure
 
-The infrastructure doubles everything from Module 1: two S3 buckets, two ECR repos, two IAM roles, two CodeBuild projects, two Lambda invocations, and two AgentCore Runtimes.
+Because we're deploying two agents, the infrastructure is doubled: two S3 buckets, two ECR repos, two IAM roles, two CodeBuild projects, two Lambda invocations, and two AgentCore Runtimes.
 
 ### Configuration and data sources
 
@@ -2621,7 +2665,7 @@ pulumi.export(
 pulumi up
 ```
 
-This takes longer than Module 1 since two Docker images are being built sequentially. Expect 10-15 minutes. You'll see the specialist build start and complete before the orchestrator build begins.
+This takes a while - two Docker images are built sequentially in CodeBuild. Expect 10-15 minutes. You'll see the specialist build start and complete before the orchestrator build begins.
 
 ## Step 8: Test
 
