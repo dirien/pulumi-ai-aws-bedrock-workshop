@@ -29,6 +29,7 @@
 02-solution/     → project files
 04-solution/     → project files
 01-solution/     → project files
+slides/          → Slidev presentation deck (see slides/AGENTS.md)
 instructor/      → TypeScript modules
 LICENSE/         → project files
 esc/             → project files
@@ -95,7 +96,7 @@ _includes/       → project files
 
 ## Scoped AGENTS.md (MUST read when working in these directories)
 <!-- AGENTS-GENERATED:START scope-index -->
-- (No scoped AGENTS.md files yet)
+- `slides/` — Slidev deck (install needs `GITHUB_TOKEN` for the `@pulumi` npm registry)
 <!-- AGENTS-GENERATED:END scope-index -->
 
 > **Agents**: When you read or edit files in a listed directory, you **must** load its AGENTS.md first. It contains directory-specific conventions that override this root file.
