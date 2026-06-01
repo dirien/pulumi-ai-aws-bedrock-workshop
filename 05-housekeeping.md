@@ -70,12 +70,4 @@ Over the last couple of hours you went from running an agent on your laptop to d
 
 The code from this workshop is yours to keep. Fork the repo and use the solution folders as starting points for your own agents.
 
-If you want to go further, here are some things we didn't cover today:
-
-- AgentCore can run MCP tools server-side, without routing through your agent container
-- MCP servers can be stateful, maintaining session state and prompting users for input via elicitation
-- Memory events can stream to Kinesis for real-time processing pipelines
-- The managed Browser supports custom profiles and extensions for more complex scraping
-- The Policy Engine can generate Cedar policies from plain English descriptions
-
 Thanks for participating. If you have questions or want to share what you build, find us in the [Pulumi Community Slack](https://slack.pulumi.com).
