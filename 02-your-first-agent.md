@@ -716,4 +716,4 @@ pulumi destroy --yes
   an IAM execution role, and the AgentCore Runtime
 - The agent you ran locally in Module 1 runs unchanged in the cloud
 
-Next up: [Module 3 - Multi-agent orchestration](03-multi-agent-orchestration.md)
+Next up: [Module 3: Multi-agent orchestration](03-multi-agent-orchestration.md)

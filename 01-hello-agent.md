@@ -160,5 +160,5 @@ When you're done, stop the server with `Ctrl+C` in the first terminal.
 - You ran an agent end to end without provisioning a single AWS resource
 - Even a "local" agent calls Bedrock, so it needs AWS credentials (provided via ESC)
 
-Next up: [Module 2 - Your first agent on AgentCore](02-your-first-agent.md). You'll
+Next up: [Module 2: Your first agent on AgentCore](02-your-first-agent.md). You'll
 take this exact `basic_agent.py` and deploy it.

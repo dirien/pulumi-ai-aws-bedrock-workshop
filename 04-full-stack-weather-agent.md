@@ -2793,4 +2793,4 @@ pulumi env run aws-bedrock-workshop/dev -- aws s3 cp s3://$(pulumi stack output 
 - The Memory API stores events tagged with actor IDs and session IDs, with configurable TTL
 - A Lambda invocation can seed Memory with initial data during deployment, so the agent has preferences from the very first invocation
 
-Next up: [Module 5 - Housekeeping](05-housekeeping.md)
+Next up: [Module 5: Cleanup](05-housekeeping.md)
