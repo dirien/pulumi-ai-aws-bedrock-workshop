@@ -115,7 +115,16 @@ pulumi env run aws-bedrock-workshop/dev -- python basic_agent.py
 ```
 
 You should see the server start up and begin listening on `http://localhost:8080`.
-Leave it running.
+Leave it running. The terminal will look idle - that's the server waiting for
+requests, not a hang.
+
+In GitHub Codespaces you'll also get a popup saying port 8080 is available:
+
+![GitHub Codespaces popup: "Your application (Dev Server Alt 2) running on port 8080 is available," with "Open in Browser" and "Make Public" buttons.](assets/images/codespaces-port-8080-popup.png)
+
+You can dismiss it. The agent only answers on `POST /invocations` and `GET /ping`,
+so opening the root URL in a browser shows nothing - you'll call it from a second
+terminal in the next step.
 
 ## Step 4: Call it
 
