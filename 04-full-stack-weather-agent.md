@@ -108,8 +108,15 @@ npm install @pulumi/aws@7.23.0
 
 <div class="lang-tab" data-lang="python" markdown="1">
 
+The `pulumi new` template writes a `requirements.txt`. Replace it with the pinned
+dependencies, then install:
+
 ```bash
-uv add pulumi-aws>=7.23.0
+cat > requirements.txt <<'EOF'
+pulumi>=3.0.0,<4.0.0
+pulumi-aws>=7.23.0
+EOF
+pulumi install
 ```
 
 </div>
@@ -2703,7 +2710,7 @@ pip install boto3
 <div class="lang-tab" data-lang="python" markdown="1">
 
 ```bash
-uv add boto3
+pip install boto3
 ```
 
 </div>
