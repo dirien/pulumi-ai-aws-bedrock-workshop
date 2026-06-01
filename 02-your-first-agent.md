@@ -51,6 +51,13 @@ build step to remember.
 
 ## Step 1: Create a new Pulumi project
 
+If you're still inside the Module 1 folder, hop back to the workshop root first
+(`cd -` returns to wherever you were before; adjust if needed):
+
+```bash
+cd -
+```
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
@@ -73,11 +80,13 @@ pulumi new aws-python --name basic-runtime --yes
 
 </div>
 
-Add the ESC environment for AWS credentials. Open `Pulumi.dev.yaml` and set:
+Add the ESC environment reference to `Pulumi.dev.yaml`:
 
-```yaml
+```bash
+cat >> Pulumi.dev.yaml <<'EOF'
 environment:
   - aws-bedrock-workshop/dev
+EOF
 ```
 
 Pin the AWS provider to a version that supports direct code deployment
