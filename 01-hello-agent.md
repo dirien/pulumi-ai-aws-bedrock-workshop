@@ -128,18 +128,23 @@ terminal in the next step.
 
 ## Step 4: Call it
 
-Open a second terminal and send the agent a prompt:
+Open a second terminal and send the agent a prompt. Piping through `jq` keeps the
+JSON readable instead of one long line (it's pre-installed in Codespaces; locally,
+drop the `| jq` if you don't have it):
 
 ```bash
 curl -s -X POST http://localhost:8080/invocations \
   -H 'Content-Type: application/json' \
-  -d '{"prompt": "What is Amazon Bedrock AgentCore?"}'
+  -d '{"prompt": "What is Amazon Bedrock AgentCore?"}' | jq
 ```
 
 You'll get back a JSON object like:
 
 ```json
-{"status": "success", "response": "Amazon Bedrock AgentCore is ..."}
+{
+  "status": "success",
+  "response": "Amazon Bedrock AgentCore is ..."
+}
 ```
 
 That answer came from a real Bedrock model, called by your agent, on your own
@@ -148,7 +153,7 @@ machine.
 Check the health endpoint too - it's the same one AgentCore polls:
 
 ```bash
-curl -s http://localhost:8080/ping
+curl -s http://localhost:8080/ping | jq
 ```
 
 When you're done, stop the server with `Ctrl+C` in the first terminal.

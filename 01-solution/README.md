@@ -23,10 +23,10 @@ In a second terminal:
 ```bash
 curl -s -X POST http://localhost:8080/invocations \
   -H 'Content-Type: application/json' \
-  -d '{"prompt": "What is Amazon Bedrock AgentCore?"}'
+  -d '{"prompt": "What is Amazon Bedrock AgentCore?"}' | jq
 
 # health check
-curl -s http://localhost:8080/ping
+curl -s http://localhost:8080/ping | jq
 ```
 
 `basic_agent.py` is the same file you deploy to AgentCore in Module 2.
