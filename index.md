@@ -69,14 +69,14 @@ You'll start by running an agent locally, then deploy it to AgentCore Runtime wi
 
 | Chapter | Title | Duration |
 |---------|-------|----------|
-| [00](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
-| [01](01-hello-agent.md) | Hello, agent! Run locally | 15 min |
+| [00](00-setup-and-orientation.md) | Setup, orientation and intro | 20 min |
+| [01](01-hello-agent.md) | Hello, agent! Run locally | 30 min |
 | [02](02-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [03](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
 | [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |
 | [05](05-housekeeping.md) | Cleanup | 10 min |
-| | **Core path** | **110 min** |
-| | **With stretch goal** | **150 min** |
+| | **Core path** | **130 min** |
+| | **With stretch goal** | **170 min** |
 
 New to the terminology? The [Glossary](glossary.md) lists every acronym used in the workshop.
 

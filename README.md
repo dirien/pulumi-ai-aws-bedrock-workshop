@@ -2,7 +2,7 @@
 
 A hands-on workshop where you build, deploy, and connect AI agents on AWS using Pulumi infrastructure-as-code and Amazon Bedrock AgentCore.
 
-**Duration:** ~2.5 hours | **Format:** Instructor-led, hands-on
+**Duration:** ~3 hours | **Format:** Instructor-led, hands-on
 
 ## What you'll build
 
@@ -30,8 +30,8 @@ We recommend using GitHub Codespaces with the included devcontainer for a zero-i
 
 | Module | Topic | Duration |
 |--------|-------|----------|
-| [Module 0](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
-| [Module 1](01-hello-agent.md) | Hello, agent! Run locally | 15 min |
+| [Module 0](00-setup-and-orientation.md) | Setup, orientation and intro | 20 min |
+| [Module 1](01-hello-agent.md) | Hello, agent! Run locally | 30 min |
 | [Module 2](02-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [Module 3](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
 | [Module 4](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |

@@ -2,7 +2,7 @@
 ---
 # Module 1: Hello, agent! Run locally
 
-**Duration:** ~15 minutes
+**Duration:** ~30 minutes
 
 ## What you'll learn
 

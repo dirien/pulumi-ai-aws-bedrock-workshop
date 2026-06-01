@@ -2,7 +2,7 @@
 ---
 # Module 0: Setup, orientation and intro
 
-**Duration:** ~15 minutes
+**Duration:** ~20 minutes
 
 ## What you'll learn
 
