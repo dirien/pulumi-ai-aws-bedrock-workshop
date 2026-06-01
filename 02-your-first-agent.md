@@ -773,14 +773,6 @@ ran locally in Module 1, now answering from AgentCore.
 - **Send your own prompts.** Edit the prompts in `test_basic_agent.py`, or call
   `invoke_agent_runtime` directly with boto3.
 
-## Step 7: Clean up
-
-Each module is a separate stack. Tear this one down before moving on:
-
-```bash
-pulumi destroy --yes
-```
-
 ## What you learned
 
 - AgentCore direct code deployment ships a `.zip`, not a container - no Dockerfile,
