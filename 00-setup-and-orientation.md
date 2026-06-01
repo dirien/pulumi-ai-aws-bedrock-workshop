@@ -36,7 +36,7 @@ That's the whole stack: **Pulumi** (in TypeScript or Python) deploys infrastruct
 
 The intro covered the tools on their own. Here's how they fit together when you actually deploy.
 
-One piece the intro skipped: the **Strands SDK** (software development kit), the Python framework you'll write agents with. You define a system prompt, attach tools, and Strands runs the conversation loop with the LLM for you. Its built-in `BedrockAgentCoreApp` class wraps your agent as an HTTP (Hypertext Transfer Protocol) service that AgentCore Runtime knows how to invoke. That's the bridge between the code you write and the runtime Pulumi provisions.
+One piece the intro skipped: the **[Strands SDK](https://strandsagents.com/)** (software development kit), the Python framework you'll write agents with. You define a system prompt, attach tools, and Strands runs the conversation loop with the LLM for you. Its built-in `BedrockAgentCoreApp` class wraps your agent as an HTTP (Hypertext Transfer Protocol) service that AgentCore Runtime knows how to invoke. That's the bridge between the code you write and the runtime Pulumi provisions.
 
 Here's the flow:
 
