@@ -193,11 +193,13 @@ pulumi new aws-python --name verify-setup --yes
 
 </div>
 
-Open `Pulumi.dev.yaml` and add the ESC environment reference:
+Add the ESC environment reference to `Pulumi.dev.yaml`:
 
-```yaml
+```bash
+cat >> Pulumi.dev.yaml <<'EOF'
 environment:
   - aws-bedrock-workshop/dev
+EOF
 ```
 
 Run a preview:
