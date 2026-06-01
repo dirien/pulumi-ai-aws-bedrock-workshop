@@ -562,11 +562,13 @@ The container runs as a non-root user (`bedrock_agentcore`) because AgentCore re
 
 The Memory resource starts empty. This Lambda seeds it with activity preferences during deployment so the agent has data to work with from the first invocation.
 
+From the module root, create the Lambda folder:
+
 ```bash
 mkdir -p lambda/init-memory
 ```
 
-Create `lambda/init-memory/index.py`:
+Create `index.py` inside `lambda/init-memory` and copy the content in:
 
 ```python
 import json
@@ -628,11 +630,13 @@ Pulumi invokes this Lambda once after the Memory resource is created. The `actor
 
 This Lambda starts a CodeBuild job and polls until it completes, giving Pulumi a synchronous way to wait for the Docker image to be ready before creating the AgentCore Runtime.
 
+From the module root, create the Lambda folder:
+
 ```bash
 mkdir -p lambda/build-trigger
 ```
 
-Create `lambda/build-trigger/index.py`:
+Create `index.py` inside `lambda/build-trigger` and copy the content in:
 
 ```python
 import json
@@ -681,7 +685,7 @@ def handler(event, _context):
 
 ## Step 6: Create the buildspec
 
-Create `04-weather-agent/buildspec.yml` in the project root:
+Create `buildspec.yml` in the module root:
 
 ```yaml
 version: 0.2

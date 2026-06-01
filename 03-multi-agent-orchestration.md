@@ -468,7 +468,13 @@ CodeBuild to run the Docker build and a small Lambda to drive it. The Lambda sta
 CodeBuild job and polls until the build finishes, then returns, so Pulumi waits for
 the image to be ready before it creates the runtime.
 
-Create `lambda/build-trigger/index.py`:
+From the module root, create the Lambda folder:
+
+```bash
+mkdir -p lambda/build-trigger
+```
+
+Create `index.py` inside `lambda/build-trigger` and copy the content in:
 
 ```python
 import json
