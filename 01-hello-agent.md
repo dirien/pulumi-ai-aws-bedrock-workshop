@@ -43,7 +43,7 @@ Make a working directory and an agent file:
 mkdir 01-hello-agent && cd 01-hello-agent
 ```
 
-Create `basic_agent.py`:
+Create a `basic_agent.py` file in your IDE and copy the content in:
 
 ```python
 from strands import Agent
