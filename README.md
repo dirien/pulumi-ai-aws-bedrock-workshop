@@ -31,7 +31,7 @@ We recommend using GitHub Codespaces with the included devcontainer for a zero-i
 | Module | Topic | Duration |
 |--------|-------|----------|
 | [Module 0](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
-| [Module 1](01-hello-agent.md) | Hello, agent: run it locally | 15 min |
+| [Module 1](01-hello-agent.md) | Hello, agent! Run locally | 15 min |
 | [Module 2](02-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [Module 3](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
 | [Module 4](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |

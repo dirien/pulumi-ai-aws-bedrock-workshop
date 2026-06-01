@@ -1,6 +1,6 @@
 ---
 ---
-# Module 1: Hello, agent: run it locally
+# Module 1: Hello, agent! Run locally
 
 **Duration:** ~15 minutes
 

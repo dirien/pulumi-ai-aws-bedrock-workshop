@@ -1,4 +1,4 @@
-# Module 1 solution - Hello, agent (run it locally)
+# Module 1 solution - Hello, agent! Run locally
 
 The complete agent from Module 1. No infrastructure, no cloud - it runs on your
 laptop and talks to Amazon Bedrock directly.

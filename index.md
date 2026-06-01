@@ -20,7 +20,7 @@ flowchart LR
     W --> M3
     W --> M4
 
-    subgraph M1["Module 1 · Hello, agent (local)"]
+    subgraph M1["Module 1 · Hello, agent! Run locally"]
         direction TB
         F1["Strands agent"]
         F2["BedrockAgentCoreApp<br/>/invocations + /ping"]
@@ -70,7 +70,7 @@ You'll start by running an agent locally, then deploy it to AgentCore Runtime wi
 | Chapter | Title | Duration |
 |---------|-------|----------|
 | [00](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
-| [01](01-hello-agent.md) | Hello, agent: run it locally | 15 min |
+| [01](01-hello-agent.md) | Hello, agent! Run locally | 15 min |
 | [02](02-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [03](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
 | [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |
