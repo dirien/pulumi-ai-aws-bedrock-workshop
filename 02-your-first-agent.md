@@ -45,8 +45,9 @@ Docker build, and somewhere to run that build. Direct code skips all of it.
 AgentCore runs on ARM64 (Graviton) hardware. Pure-Python packages don't care, but
 anything with compiled code (here, `pydantic-core`, a dependency of Strands) ships
 as architecture-specific wheels. So when we build the deployment package we
-explicitly ask for **Linux ARM64** wheels. A small `build.sh` script handles this;
-you don't have to think about it beyond running it.
+explicitly ask for **Linux ARM64** wheels. A small `build.sh` script handles this -
+and the Pulumi program runs it for you during `pulumi up`, so there's no separate
+build step to remember.
 
 ## Step 1: Create a new Pulumi project
 
@@ -80,21 +81,23 @@ environment:
 ```
 
 Pin the AWS provider to a version that supports direct code deployment
-(`codeConfiguration` landed in `pulumi-aws` 7.30):
+(`codeConfiguration` landed in `pulumi-aws` 7.30), and add the `command` provider -
+we'll use it to run the packaging build during `pulumi up`:
 
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
 
 ```bash
-npm install @pulumi/aws@^7.30.0
+npm install @pulumi/aws@^7.30.0 @pulumi/command
 ```
 
 </div>
 
 <div class="lang-tab" data-lang="python" markdown="1">
 
-Edit `pyproject.toml` so the dependency reads `pulumi-aws>=7.30.0`, then:
+Edit `pyproject.toml` so the dependencies read `pulumi-aws>=7.30.0` and
+`pulumi-command>=1.0.0`, then:
 
 ```bash
 pulumi install
@@ -157,9 +160,10 @@ boto3
 
 ## Step 3: Add the build script
 
-The build script downloads ARM64 wheels for your dependencies into a `build/`
-directory and drops the agent code in alongside them. Pulumi will zip that
-directory and upload it.
+The build script installs Linux ARM64 wheels for your dependencies into a `build/`
+directory and drops the agent code in alongside them. You don't run it by hand -
+the Pulumi program runs it for you during `pulumi up` (next step). You just need the
+file to exist.
 
 Create `build.sh`:
 
@@ -187,20 +191,23 @@ cp agent-code/basic_agent.py build/
 find build -name '__pycache__' -type d -prune -exec rm -rf {} +
 ```
 
-Run it:
+Make it executable, and ignore the `build/` output (it's a build artifact):
 
 ```bash
 chmod +x build.sh
-./build.sh
+echo "build/" >> .gitignore
 ```
-
-You'll get a `build/` directory containing the agent plus its ARM64 dependencies.
-(Add `build/` to your `.gitignore` - it's a build artifact.)
 
 ## Step 4: Write the Pulumi program
 
-Now the deployment. It's four resources: an S3 bucket, the zipped code object, an
-IAM execution role, and the AgentCore Runtime itself.
+Now the deployment. The program does five things: run `build.sh` to package the
+agent, then create an S3 bucket, the zipped code object, an IAM execution role, and
+the AgentCore Runtime itself.
+
+The packaging runs through a `command.local.Command` resource. Its `triggers` are a
+hash of the agent code and its dependencies, so the build re-runs only when one of
+those changes - not on every `pulumi up`. The S3 code object then `dependsOn` the
+build, so the zip is always fresh before it's uploaded.
 
 <div class="lang-tabs" markdown="1">
 
@@ -211,6 +218,9 @@ Replace `index.ts` with:
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
+import * as command from "@pulumi/command";
+import { createHash } from "crypto";
+import * as fs from "fs";
 import * as path from "path";
 
 const config = new pulumi.Config();
@@ -224,8 +234,23 @@ const awsRegion = awsConfig.require("region");
 const currentIdentity = aws.getCallerIdentityOutput({});
 const currentRegion = aws.getRegionOutput({});
 
-// build/ is produced by ./build.sh (ARM64 deps + agent code).
+const agentCodeDir = path.resolve(__dirname, "agent-code");
 const buildDir = path.resolve(__dirname, "build");
+
+// Hash of the inputs that should trigger a repackage: the agent and its deps.
+const sourceHash = createHash("sha256")
+  .update(fs.readFileSync(path.join(agentCodeDir, "basic_agent.py")))
+  .update(fs.readFileSync(path.join(agentCodeDir, "requirements.txt")))
+  .digest("hex");
+
+// --- Build the ARM64 deployment package during `pulumi up` ---
+// build.sh installs Linux ARM64 wheels into build/ and copies the agent in.
+// triggers means it only re-runs when the agent or its deps change.
+const build = new command.local.Command("build_package", {
+  create: `bash ${path.join(__dirname, "build.sh")}`,
+  dir: __dirname,
+  triggers: [sourceHash],
+});
 
 // --- S3 bucket holding the zipped agent package ---
 const codeBucket = new aws.s3.Bucket("agent_code", {
@@ -246,12 +271,16 @@ new aws.s3.BucketVersioning("agent_code", {
   versioningConfiguration: { status: "Enabled" },
 });
 
-// Pulumi zips build/ and uploads it.
-const codeObject = new aws.s3.BucketObjectv2("agent_code", {
-  bucket: codeBucket.id,
-  key: "agent-code.zip",
-  source: new pulumi.asset.FileArchive(buildDir),
-});
+// Pulumi zips build/ (produced by the build command above) and uploads it.
+const codeObject = new aws.s3.BucketObjectv2(
+  "agent_code",
+  {
+    bucket: codeBucket.id,
+    key: "agent-code.zip",
+    source: new pulumi.asset.FileArchive(buildDir),
+  },
+  { dependsOn: [build] },
+);
 
 // --- IAM execution role ---
 const agentExecution = new aws.iam.Role("agent_execution", {
@@ -400,9 +429,12 @@ export const agentRuntimeId = basicAgent.agentRuntimeId;
 Replace `__main__.py` with:
 
 ```python
+import hashlib
 import os
+
 import pulumi
 import pulumi_aws as aws
+import pulumi_command as command
 
 config = pulumi.Config()
 agent_name = config.get("agentName") or "BasicAgent"
@@ -415,8 +447,33 @@ aws_region = aws_config.require("region")
 current_identity = aws.get_caller_identity_output()
 current_region = aws.get_region_output()
 
-# build/ is produced by ./build.sh (ARM64 deps + agent code).
-build_dir = os.path.join(os.path.dirname(__file__), "build")
+here = os.path.dirname(__file__)
+agent_code_dir = os.path.join(here, "agent-code")
+build_dir = os.path.join(here, "build")
+
+
+def _sha256(path: str) -> str:
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+# Hash of the inputs that should trigger a repackage: the agent and its deps.
+source_hash = hashlib.sha256(
+    (
+        _sha256(os.path.join(agent_code_dir, "basic_agent.py"))
+        + _sha256(os.path.join(agent_code_dir, "requirements.txt"))
+    ).encode()
+).hexdigest()
+
+# --- Build the ARM64 deployment package during `pulumi up` ---
+# build.sh installs Linux ARM64 wheels into build/ and copies the agent in.
+# triggers means it only re-runs when the agent or its deps change.
+build = command.local.Command(
+    "build_package",
+    create=f"bash {os.path.join(here, 'build.sh')}",
+    dir=here,
+    triggers=[source_hash],
+)
 
 # --- S3 bucket holding the zipped agent package ---
 code_bucket = aws.s3.Bucket(
@@ -440,12 +497,13 @@ aws.s3.BucketVersioning(
     versioning_configuration={"status": "Enabled"},
 )
 
-# Pulumi zips build/ and uploads it.
+# Pulumi zips build/ (produced by the build command above) and uploads it.
 code_object = aws.s3.BucketObjectv2(
     "agent_code",
     bucket=code_bucket.id,
     key="agent-code.zip",
     source=pulumi.FileArchive(build_dir),
+    opts=pulumi.ResourceOptions(depends_on=[build]),
 )
 
 # --- IAM execution role ---
@@ -613,7 +671,9 @@ A few things worth noticing:
 pulumi up
 ```
 
-This takes about a minute - most of it is uploading the zip and AgentCore
+That single command does everything: it runs `build.sh` to package your agent for
+ARM64, uploads the zip to S3, creates the IAM role, and provisions the runtime. The
+first run takes about a minute - most of it is downloading wheels and AgentCore
 provisioning the runtime. Watch for `agentRuntimeArn` at the end.
 
 ## Step 6: Invoke your agent
@@ -631,8 +691,9 @@ ran locally in Module 1, now answering from AgentCore.
 
 ## Try it yourself
 
-- **Change the system prompt.** Edit `agent-code/basic_agent.py`, re-run
-  `./build.sh`, then `pulumi up`. The new object version triggers a redeploy.
+- **Change the system prompt.** Edit `agent-code/basic_agent.py`, then `pulumi up`.
+  The edited file changes the build hash, so Pulumi repackages and redeploys
+  automatically - no manual build needed.
 - **Send your own prompts.** Edit the prompts in `test_basic_agent.py`, or call
   `invoke_agent_runtime` directly with boto3.
 
@@ -649,9 +710,10 @@ pulumi destroy --yes
 - AgentCore direct code deployment ships a `.zip`, not a container - no Dockerfile,
   no ECR, no build pipeline
 - The runtime is ARM64, so dependencies are packaged as Linux ARM64 wheels
-- The whole deployment is four resources: an S3 bucket, the code object, an IAM
-  execution role, and the AgentCore Runtime
-- `pulumi up` zips your `build/` directory, uploads it, and points the runtime at it
+- A `command.local.Command` runs the packaging build during `pulumi up`, so one
+  command does everything - no separate build step to remember
+- The deployment is a build step plus four resources: an S3 bucket, the code object,
+  an IAM execution role, and the AgentCore Runtime
 - The agent you ran locally in Module 1 runs unchanged in the cloud
 
 Next up: [Module 3 - Multi-agent orchestration](03-multi-agent-orchestration.md)

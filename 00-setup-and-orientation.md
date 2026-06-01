@@ -254,4 +254,4 @@ The core path runs 0 → 1 → 2 → 3 → 5. You start by running an agent loca
 - Pulumi ESC stores AWS credentials encrypted and injects them into every deployment automatically
 - Your local setup can authenticate with AWS and run `pulumi preview`
 
-Next up: [Module 1 - Hello, agent (run it locally)](01-hello-agent.md)
+Next up: [Module 1: Hello, agent: run it locally](01-hello-agent.md)

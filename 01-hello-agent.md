@@ -1,6 +1,6 @@
 ---
 ---
-# Module 1: Hello, agent - run it locally
+# Module 1: Hello, agent: run it locally
 
 **Duration:** ~15 minutes
 
@@ -13,13 +13,13 @@
 
 ## Why start local?
 
-In the next module you'll deploy an agent to AWS. But deploying something you've
-never seen run is stressful - if it doesn't work, you don't know whether the bug
-is in your code or your infrastructure.
+In the next module you'll deploy an agent to AWS. Deploying something you've never
+seen run is a bad time: when it breaks, you can't tell whether the bug is in your
+code or your infrastructure.
 
-So we start small. In this module you write an agent and run it on your laptop.
-No Pulumi, no AWS resources, nothing to tear down. Once you've watched it answer a
-question locally, Module 2 is just "ship this exact file to the cloud."
+So we start small. Here you write an agent and run it on your laptop. No Pulumi, no
+AWS resources, nothing to tear down. Once you've watched it answer a question
+locally, Module 2 is just "ship this exact file to the cloud."
 
 ## Key concept: the agent is an HTTP service
 
@@ -30,19 +30,10 @@ routes:
 - `POST /invocations` - run the agent on a request payload
 - `GET /ping` - a health check AgentCore uses to know your agent is alive
 
-The important part: **this is the same wrapper locally and in the cloud.** When you
-run the file on your laptop, it serves those two routes on `localhost:8080`. When
-AgentCore runs it later, it calls the very same routes. Nothing about your agent
-code changes between "local" and "deployed."
-
-## Prerequisites
-
-- You finished [Module 0](00-setup-and-orientation.md) and have the
-  `aws-bedrock-workshop/dev` ESC environment with AWS credentials.
-- Your AWS account has **Bedrock model access** enabled (the workshop account
-  already does). Strands calls a Bedrock model under the hood, so the agent needs
-  credentials even when it runs on your laptop.
-- Python 3.11+ available.
+The important part: this is the same wrapper locally and in the cloud. Run the file
+on your laptop and it serves those two routes on `localhost:8080`. When AgentCore
+runs it later, it calls the same routes. Your agent code doesn't change between
+"local" and "deployed" - only where it runs does.
 
 ## Step 1: Create the agent
 
@@ -142,10 +133,10 @@ You'll get back a JSON object like:
 {"status": "success", "response": "Amazon Bedrock AgentCore is ..."}
 ```
 
-That response came from a real Bedrock model, running through your agent, on your
+That answer came from a real Bedrock model, called by your agent, on your own
 machine.
 
-Check the health endpoint too - this is exactly what AgentCore polls:
+Check the health endpoint too - it's the same one AgentCore polls:
 
 ```bash
 curl -s http://localhost:8080/ping
@@ -158,9 +149,9 @@ When you're done, stop the server with `Ctrl+C` in the first terminal.
 - **Change the personality.** Edit `system_prompt` to make the agent a pirate, a
   haiku poet, or a terse senior engineer. Restart and curl it again.
 - **Send different prompts.** Swap the `"prompt"` value in the curl command.
-- **Break it on purpose.** Stop the server and curl `/invocations` again - see how
-  the connection fails. That intuition helps later: if a deployed agent is
-  unreachable, the runtime probably isn't healthy.
+- **Break it on purpose.** Stop the server and curl `/invocations` again - watch the
+  connection refuse. Worth seeing now: when a deployed agent goes unreachable later,
+  it usually means the runtime isn't healthy.
 
 ## What you learned
 

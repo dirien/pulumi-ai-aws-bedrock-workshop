@@ -2,7 +2,7 @@
 title: Home
 ---
 
-[![Slack](https://img.shields.io/badge/Slack-Pulumi%20Community-blueviolet?logo=slack)](https://slack.pulumi.com)
+[![Slack](https://img.shields.io/badge/Slack-Pulumi_Community-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://slack.pulumi.com)
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dirien/pulumi-ai-aws-bedrock-workshop?quickstart=1)
 
 Welcome to the Deploying AI Agents on AWS workshop.
@@ -12,26 +12,55 @@ In this hands-on workshop, you'll learn how to build, deploy, and connect AI age
 ## What you'll build
 
 ```mermaid
-flowchart TD
-    O["Orchestrator Agent<br/>Coordinates delegation"]
-    style O fill:#5a30c5,color:#fff,stroke:#492e8e,stroke-width:2px
+flowchart LR
+    W["Deploying AI Agents<br/>on AWS workshop"]
 
-    O --> A["Basic Agent<br/>Q&A"]
-    O --> C["Specialist Agent<br/>Deep Analysis"]
-    O --> D["Weather Agent<br/>Full Stack"]
+    W --> M1
+    W --> M2
+    W --> M3
+    W --> M4
 
-    D --> E["Browser Tool"]
-    D --> F["Code Interpreter"]
-    D --> G["Memory"]
-    D --> H["S3 Results"]
+    subgraph M1["Module 1 · Hello, agent (local)"]
+        direction TB
+        F1["Strands agent"]
+        F2["BedrockAgentCoreApp<br/>/invocations + /ping"]
+    end
 
-    style A fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
-    style C fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
-    style D fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
-    style E fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
-    style F fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
-    style G fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
-    style H fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    subgraph M2["Module 2 · Deploy to AgentCore"]
+        direction TB
+        F3["Direct-code ZIP<br/>(no Docker)"]
+        F4["S3 + IAM role<br/>ARM64 runtime"]
+    end
+
+    subgraph M3["Module 3 · Multi-agent orchestration"]
+        direction TB
+        F5["Agent-to-agent calls"]
+        F6["IAM-scoped<br/>orchestrator + specialist"]
+    end
+
+    subgraph M4["Module 4 · Weather agent (stretch)"]
+        direction TB
+        F7["Browser"]
+        F8["Code Interpreter"]
+        F9["Memory"]
+        F10["Observability + S3"]
+    end
+
+    style W fill:#5a30c5,color:#fff,stroke:#492e8e,stroke-width:2px
+    style M1 fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style M2 fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style M3 fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style M4 fill:#21c45d,color:#fff,stroke:#16a249,stroke-width:2px
+    style F1 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F2 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F3 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F4 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F5 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F6 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F7 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F8 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F9 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
+    style F10 fill:#02d9c0,color:#0a3a36,stroke:#00a896,stroke-width:2px
 ```
 
 You'll start by running an agent locally, then deploy it to AgentCore Runtime with Pulumi. From there you'll have agents communicate agent-to-agent using IAM (Identity and Access Management)-scoped invocations, and finish with a full-stack agent that wires in Browser, Code Interpreter, and Memory tools.
@@ -41,7 +70,7 @@ You'll start by running an agent locally, then deploy it to AgentCore Runtime wi
 | Chapter | Title | Duration |
 |---------|-------|----------|
 | [00](00-setup-and-orientation.md) | Setup, orientation and intro | 15 min |
-| [01](01-hello-agent.md) | Hello, agent - run it locally | 15 min |
+| [01](01-hello-agent.md) | Hello, agent: run it locally | 15 min |
 | [02](02-your-first-agent.md) | Your first agent on AgentCore | 30 min |
 | [03](03-multi-agent-orchestration.md) | Multi-agent orchestration | 40 min |
 | [04](04-full-stack-weather-agent.md) | The full stack: weather agent with tools and memory _(Stretch goal)_ | 40 min |

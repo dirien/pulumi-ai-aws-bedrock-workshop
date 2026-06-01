@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@pulumi/aws": "^7.30.0",
+    "@pulumi/command": "^1.0.0",
     "@pulumi/pulumi": "^3.0.0",
     "typescript": "^4.0.0"
   }

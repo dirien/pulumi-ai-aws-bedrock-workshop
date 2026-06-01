@@ -4,16 +4,20 @@ Ships the same agent you ran locally in Module 1 to Amazon Bedrock AgentCore
 using AgentCore's direct code deployment - a .zip of the agent and its
 dependencies instead of a Docker image.
 
-Build the package first (installs ARM64 deps into build/), then deploy:
+Deploy with a single command:
 
-    ./build.sh
     pulumi up
+
+The packaging build (build.sh, which installs ARM64 deps into build/) runs
+automatically as part of `pulumi up` via a command.local.Command resource.
 """
 
+import hashlib
 import os
 
 import pulumi
 import pulumi_aws as aws
+import pulumi_command as command
 
 config = pulumi.Config()
 agent_name = config.get("agentName") or "BasicAgent"
@@ -26,8 +30,33 @@ aws_region = aws_config.require("region")
 current_identity = aws.get_caller_identity_output()
 current_region = aws.get_region_output()
 
-# build/ is produced by ./build.sh (ARM64 deps + agent code).
-build_dir = os.path.join(os.path.dirname(__file__), "build")
+here = os.path.dirname(__file__)
+agent_code_dir = os.path.join(here, "agent-code")
+build_dir = os.path.join(here, "build")
+
+
+def _sha256(path: str) -> str:
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+# Hash of the inputs that should trigger a repackage: the agent and its deps.
+source_hash = hashlib.sha256(
+    (
+        _sha256(os.path.join(agent_code_dir, "basic_agent.py"))
+        + _sha256(os.path.join(agent_code_dir, "requirements.txt"))
+    ).encode()
+).hexdigest()
+
+# --- Build the ARM64 deployment package during `pulumi up` ---
+# build.sh installs Linux ARM64 wheels into build/ and copies the agent in.
+# triggers means it only re-runs when the agent or its deps change.
+build = command.local.Command(
+    "build_package",
+    create=f"bash {os.path.join(here, 'build.sh')}",
+    dir=here,
+    triggers=[source_hash],
+)
 
 # --- S3 bucket holding the zipped agent package ---
 code_bucket = aws.s3.Bucket(
@@ -51,12 +80,13 @@ aws.s3.BucketVersioning(
     versioning_configuration={"status": "Enabled"},
 )
 
-# Pulumi zips build/ and uploads it.
+# Pulumi zips build/ (produced by the build command above) and uploads it.
 code_object = aws.s3.BucketObjectv2(
     "agent_code",
     bucket=code_bucket.id,
     key="agent-code.zip",
     source=pulumi.FileArchive(build_dir),
+    opts=pulumi.ResourceOptions(depends_on=[build]),
 )
 
 # --- IAM execution role ---
