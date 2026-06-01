@@ -525,6 +525,10 @@ def handler(event, _context):
 
 Because we're deploying two agents, the infrastructure is doubled: two S3 buckets, two ECR repos, two IAM roles, two CodeBuild projects, two Lambda invocations, and two AgentCore Runtimes.
 
+We'll build this up section by section. Delete the starter code that `pulumi new`
+put in `index.ts` (TypeScript) or `__main__.py` (Python), then paste the sections
+below into that file in order.
+
 ### Configuration and data sources
 
 <details>

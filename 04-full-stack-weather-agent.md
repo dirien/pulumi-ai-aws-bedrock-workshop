@@ -715,7 +715,7 @@ phases:
 
 ## Step 7: Write the Pulumi infrastructure
 
-Now for the infrastructure. We'll walk through it section by section. Each snippet is a direct excerpt from the solution files.
+Now for the infrastructure. We'll walk through it section by section. Each snippet is a direct excerpt from the solution files. Delete the starter code that `pulumi new` put in `index.ts` (TypeScript) or `__main__.py` (Python), then paste the sections below into that file in order.
 
 ### Configuration and data sources
 
