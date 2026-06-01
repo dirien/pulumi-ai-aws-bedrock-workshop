@@ -66,7 +66,7 @@ rm -rf /tmp/verify-setup
 
 ## Wrap-up
 
-Over the last couple of hours you went from zero to a multi-tool agent that browses the web, runs Python, and remembers user preferences. All of it deployed with Pulumi and running on AgentCore.
+Over the last couple of hours you went from running an agent on your laptop to deploying it on AgentCore and having agents call each other - all with Pulumi. And if you took the weather-agent stretch goal, you also wired in Browser, Code Interpreter, and Memory.
 
 The code from this workshop is yours to keep. Fork the repo and use the solution folders as starting points for your own agents.
 
