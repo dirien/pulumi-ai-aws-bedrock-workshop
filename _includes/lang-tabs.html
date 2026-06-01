@@ -2,8 +2,8 @@
   .lang-tabs {
     position: relative;
     margin: 1em 0;
-    /* active accent: green, brightened in dark mode below */
-    --lang-active: #16a34a;
+    /* active accent: the link color (Pulumi violet), brightened in dark mode below */
+    --lang-active: var(--pulumi-violet-700, #5a30c5);
   }
   .lang-tab-buttons {
     display: flex;
@@ -40,10 +40,10 @@
     border-bottom-color: var(--lang-active);
   }
   @media (prefers-color-scheme: dark) {
-    .lang-tabs { --lang-active: #3ddc84; }
+    .lang-tabs { --lang-active: var(--pulumi-violet-500, #9077f3); }
   }
   [data-color-mode="dark"] .lang-tabs,
-  [data-dark-theme] .lang-tabs { --lang-active: #3ddc84; }
+  [data-dark-theme] .lang-tabs { --lang-active: var(--pulumi-violet-500, #9077f3); }
   .lang-tab {
     display: none;
   }
