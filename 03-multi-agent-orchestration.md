@@ -246,9 +246,12 @@ The orchestrator reads `SPECIALIST_ARN` from an environment variable set by Pulu
 
 The response handling has three branches because AgentCore can return different content types: event streams, JSON, or raw bytes. In practice, you'll usually get the streaming format.
 
-Create a folder for the orchestrator's source:
+Create a folder for the orchestrator's source. If you stepped into
+`agent-specialist-code` in your terminal, go back to the module root first so this
+lands in the right place:
 
 ```bash
+cd ..   # only if you're inside agent-specialist-code; skip if already in the module root
 mkdir -p agent-orchestrator-code
 ```
 
