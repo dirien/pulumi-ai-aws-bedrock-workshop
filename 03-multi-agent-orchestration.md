@@ -160,13 +160,13 @@ pulumi config set stackName agentcore-multi-<id>
 
 The specialist is a plain Strands agent with no special tools. Its only job is to give detailed answers. The response includes `"agent": "specialist"` so you can tell where the answer came from when testing.
 
-Create the specialist source directory:
+Create a folder for the specialist's source:
 
 ```bash
 mkdir -p agent-specialist-code
 ```
 
-Create `agent-specialist-code/agent.py`:
+Create `agent.py` inside `agent-specialist-code` and copy the content in:
 
 ```python
 from strands import Agent
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     app.run()
 ```
 
-Create `agent-specialist-code/requirements.txt`:
+Create `requirements.txt` inside `agent-specialist-code`:
 
 ```text
 strands-agents
@@ -219,7 +219,7 @@ botocore>=1.40.0
 bedrock-agentcore
 ```
 
-Create `agent-specialist-code/Dockerfile`:
+Create `Dockerfile` inside `agent-specialist-code`:
 
 ```dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim
@@ -246,13 +246,13 @@ The orchestrator reads `SPECIALIST_ARN` from an environment variable set by Pulu
 
 The response handling has three branches because AgentCore can return different content types: event streams, JSON, or raw bytes. In practice, you'll usually get the streaming format.
 
-Create the orchestrator source directory:
+Create a folder for the orchestrator's source:
 
 ```bash
 mkdir -p agent-orchestrator-code
 ```
 
-Create `agent-orchestrator-code/agent.py`:
+Create `agent.py` inside `agent-orchestrator-code` and copy the content in:
 
 ```python
 from strands import Agent, tool

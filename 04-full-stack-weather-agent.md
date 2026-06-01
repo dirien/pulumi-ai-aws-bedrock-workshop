@@ -133,13 +133,13 @@ pulumi config set stackName agentcore-weather-<id>
 
 ## Step 2: Write the weather agent code
 
-Create the agent source directory:
+Create a folder for the agent's source:
 
 ```bash
 mkdir -p agent-code
 ```
 
-Create `agent-code/weather_agent.py`. This is the full agent - every section is explained below.
+Create `weather_agent.py` inside `agent-code`. This is the full agent - every section is explained below.
 
 ### Imports and environment variables
 
@@ -517,7 +517,7 @@ if __name__ == "__main__":
 
 ## Step 3: Create requirements.txt and Dockerfile
 
-Create `agent-code/requirements.txt`:
+Create `requirements.txt` inside `agent-code`:
 
 ```text
 strands-agents
@@ -531,7 +531,7 @@ langchain-aws>=0.1.0
 rich
 ```
 
-Create `agent-code/Dockerfile`:
+Create `Dockerfile` inside `agent-code`:
 
 ```dockerfile
 FROM public.ecr.aws/docker/library/python:3.11-slim

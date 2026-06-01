@@ -185,12 +185,8 @@ boto3
 
 ## Step 3: Add the build script
 
-The build script installs Linux ARM64 wheels for your dependencies into a `build/`
-directory and drops the agent code in alongside them. You don't run it by hand -
-the Pulumi program runs it for you during `pulumi up` (next step). You just need the
-file to exist.
-
-Create `build.sh`:
+Create a file called `build.sh` in your project root, next to `__main__.py` (or
+`index.ts`) and the `agent-code` folder:
 
 ```bash
 #!/usr/bin/env bash
@@ -216,10 +212,13 @@ cp agent-code/basic_agent.py build/
 find build -name '__pycache__' -type d -prune -exec rm -rf {} +
 ```
 
-Make it executable, and ignore the `build/` output (it's a build artifact):
+You won't run this yourself. The Pulumi program calls it during `pulumi up` (next
+step), and the `cd "$(dirname "$0")"` line means it always builds relative to its
+own location, creating the `build/` directory in the project root.
+
+`build/` is generated output, so keep it out of git:
 
 ```bash
-chmod +x build.sh
 echo "build/" >> .gitignore
 ```
 
