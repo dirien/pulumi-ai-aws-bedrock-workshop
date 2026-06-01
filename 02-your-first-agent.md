@@ -105,10 +105,15 @@ npm install @pulumi/aws@^7.30.0 @pulumi/command
 
 <div class="lang-tab" data-lang="python" markdown="1">
 
-Edit `pyproject.toml` so the dependencies read `pulumi-aws>=7.30.0` and
-`pulumi-command>=1.0.0`, then:
+The `pulumi new` template writes a `requirements.txt`. Replace it with the pinned
+dependencies, then install:
 
 ```bash
+cat > requirements.txt <<'EOF'
+pulumi>=3.0.0,<4.0.0
+pulumi-aws>=7.30.0
+pulumi-command>=1.0.0
+EOF
 pulumi install
 ```
 
