@@ -26,7 +26,7 @@ New to any of these tools? Here's the speed-run. The [Glossary](glossary.md) lis
 
 ![Amazon Bedrock capabilities overview: models and inference (models, fine-tuning, knowledge bases, distillation) alongside agent development, including AgentCore and Bedrock Managed Agents, all under shared security, guardrails, and governance.](assets/images/amazon-bedrock.png)
 
-**[Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/)** is the newer, agent-focused layer on top. It's a managed runtime for AI agents: you hand it a container image with your agent code and it handles hosting, scaling, and invocation. Think "Lambda for agents": no servers to manage, just deploy a container and call it. Throughout the workshop, Pulumi provisions the AgentCore runtimes (and everything around them), and your agents run on AgentCore while calling Bedrock models.
+**[Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/)** is the newer, agent-focused layer on top. It's a managed runtime for AI agents: you hand it your agent code - packaged as a `.zip` file or a container image - and it handles hosting, scaling, and invocation. Think "Lambda for agents": no servers to manage, just deploy your code and call it. Throughout the workshop, Pulumi provisions the AgentCore runtimes (and everything around them), and your agents run on AgentCore while calling Bedrock models.
 
 ![Amazon Bedrock AgentCore capabilities: tools and memory (Memory, Gateway, Browser tool, Code Interpreter), secure runtime and identity for deploying at scale, observability for operational insight, plus open-source support for MCP and A2A protocols and frameworks like Strands Agents.](assets/images/bedrock-agentcore.png)
 
@@ -43,11 +43,11 @@ Here's the flow:
 ```
 You write agent code (Python/Strands)
     ↓
-Pulumi deploys infrastructure (TypeScript or Python)
+Run it locally to see it work (Module 1)
+    ↓
+Pulumi packages your code and deploys the infrastructure (Module 2)
     ↓
 ESC provides AWS credentials (encrypted secrets)
-    ↓
-CodeBuild packages your agent into a Docker image
     ↓
 AgentCore Runtime runs your agent
 ```
@@ -98,7 +98,7 @@ You should see your username.
 ## Tips for success
 
 1. **Follow the modules sequentially** - each one builds on concepts from the previous module
-2. **Core path vs. stretch goals** - Modules 0, 1, 3, and 5 are the core path that fits the workshop slot. Modules 2 and 4 are stretch goals for anyone who finishes early. Each stretch module is its own Pulumi stack, so skipping one is fine; pick it up later
+2. **Core path vs. stretch goal** - Modules 0-3 and 5 are the core path that fits the workshop slot. Module 4 is a stretch goal for anyone who finishes early. It's its own Pulumi stack, so skipping it is fine; pick it up later
 3. **Complete the verification steps** at the end of each section to catch issues early
 4. **Ask your instructors for help** - we're here to keep you moving
 5. **Experiment** - once a module works, try modifying the agent prompt or tools to see what happens
@@ -125,7 +125,7 @@ Wait for the devcontainer to build (takes a couple of minutes). All tools (Pulum
 2. Install the [Pulumi CLI](https://www.pulumi.com/docs/install/)
 3. Install Node.js 18+ and Python 3.11+
 4. Install [uv](https://docs.astral.sh/uv/) for Python dependency management
-5. Install test dependencies: `pip install boto3 mcp`
+5. Install test dependencies: `pip install boto3`
 6. Run `pulumi login` to authenticate with Pulumi Cloud
 
 ## Step 2: Create your ESC environment for AWS credentials
@@ -220,15 +220,14 @@ rm -rf /tmp/verify-setup
 
 ## Step 4: Pick your unique identifier
 
-Every module creates AWS resources (IAM roles, ECR repos, AgentCore runtimes) that need unique names within the AWS account. If multiple participants share the same account and use the same default names, you'll get conflicts.
+From Module 2 onward, each module creates AWS resources (IAM roles, S3 buckets, AgentCore runtimes) that need unique names within the AWS account. If multiple participants share the same account and use the same default names, you'll get conflicts. (Module 1 runs entirely on your laptop, so it creates nothing.)
 
-Pick a short identifier now - your initials, a nickname, anything 2-5 characters. You'll use it in every module as your `stackName` prefix.
+Pick a short identifier now - your initials, a nickname, anything 2-5 characters. You'll use it from Module 2 onward as your `stackName` prefix.
 
 For example, if your identifier is `ed`:
 
 ```
-Module 1: agentcore-basic-ed
-Module 2: agentcore-mcp-ed       (stretch goal)
+Module 2: agentcore-basic-ed
 Module 3: agentcore-multi-ed
 Module 4: agentcore-weather-ed   (stretch goal)
 ```
@@ -243,9 +242,9 @@ Keep this identifier consistent across all modules. Write it down.
 
 ## Step 5: Familiarize yourself with the workshop structure
 
-Each module has a markdown file with instructions (what you're reading now) and solution folders (e.g., `01-solution/typescript/` and `01-solution/python/`) with the complete working code in both languages if you get stuck.
+Each module has a markdown file with instructions (what you're reading now) and a solution folder with the complete working code if you get stuck. From Module 2 onward the solutions come in both languages (e.g., `02-solution/typescript/` and `02-solution/python/`).
 
-The core path runs 0 → 1 → 3 → 5. By the end you'll have an orchestrator that delegates to a specialist agent. Modules 2 and 4 are stretch goals for anyone who finishes early: an authenticated MCP server (Module 2) and a multi-tool weather agent with Browser, Code Interpreter, and Memory (Module 4).
+The core path runs 0 → 1 → 2 → 3 → 5. You start by running an agent locally (Module 1), deploy it to AgentCore (Module 2), and by the end you'll have an orchestrator that delegates to a specialist agent (Module 3). Module 4 is a stretch goal for anyone who finishes early: a multi-tool weather agent with Browser, Code Interpreter, and Memory.
 
 ## What you learned
 
@@ -255,4 +254,4 @@ The core path runs 0 → 1 → 3 → 5. By the end you'll have an orchestrator t
 - Pulumi ESC stores AWS credentials encrypted and injects them into every deployment automatically
 - Your local setup can authenticate with AWS and run `pulumi preview`
 
-Next up: [Module 1 - Your first agent on AgentCore](01-your-first-agent.md)
+Next up: [Module 1 - Hello, agent (run it locally)](01-hello-agent.md)

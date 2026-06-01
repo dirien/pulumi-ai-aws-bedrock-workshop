@@ -1,6 +1,6 @@
-name: mcp-server-agentcore-runtime
+name: basic-runtime
 runtime:
   name: python
   options:
     toolchain: uv
-description: MCP Server on AgentCore Runtime - Pulumi Python
+description: Basic AgentCore Runtime - Pulumi Python

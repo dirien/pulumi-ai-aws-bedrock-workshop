@@ -1,6 +1,0 @@
-name: basic-runtime
-runtime:
-  name: python
-  options:
-    toolchain: uv
-description: Basic AgentCore Runtime - Pulumi Python

@@ -1,4 +1,4 @@
 environment:
-  - pulumi-idp/auth
+  - aws-bedrock-workshop/dev
 config:
-  mcp-server-agentcore-runtime:stackName: agentcore-mcp-ws
+  basic-runtime:stackName: agentcore-basic

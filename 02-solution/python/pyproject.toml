@@ -1,19 +1,9 @@
 [project]
-name = "mcp-server-agentcore-runtime"
+name = "basic-runtime"
 version = "0.1.0"
-description = "MCP Server on AgentCore Runtime - Pulumi Python"
+description = "Basic AgentCore Runtime - Pulumi Python"
 requires-python = ">=3.11"
 dependencies = [
-    "pulumi>=3.0.0",
-    "pulumi-aws>=7.23.0",
-    "pulumi-aws-native>=1.63.0",
-    "pulumi-command>=1.0.0",
-    "pulumiverse-time>=0.1.0",
+  "pulumi>=3.0.0,<4.0.0",
+  "pulumi-aws>=7.30.0",
 ]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.uv]
-package = false

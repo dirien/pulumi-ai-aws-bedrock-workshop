@@ -1,4 +1,0 @@
-environment:
-  - pulumi-idp/auth
-config:
-  basic-runtime:stackName: agentcore-basic-ws

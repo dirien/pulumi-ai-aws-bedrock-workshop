@@ -12,8 +12,8 @@ relative_links:
   collections: true
 include:
   - "00-setup-and-orientation.md"
-  - "01-your-first-agent.md"
-  - "02-mcp-server-jwt-auth.md"
+  - "01-hello-agent.md"
+  - "02-your-first-agent.md"
   - "03-multi-agent-orchestration.md"
   - "04-full-stack-weather-agent.md"
   - "05-housekeeping.md"
@@ -31,15 +31,16 @@ exclude:
   - CLAUDE.md
   - GEMINI.md
   - AGENTS.md
-  - 01-solution/typescript/node_modules
   - 02-solution/typescript/node_modules
   - 03-solution/typescript/node_modules
   - 04-solution/typescript/node_modules
-  - 01-solution/python/.venv
   - 02-solution/python/.venv
   - 03-solution/python/.venv
   - 04-solution/python/.venv
-  - 01-solution/python/__pycache__
   - 02-solution/python/__pycache__
   - 03-solution/python/__pycache__
   - 04-solution/python/__pycache__
+  - 01-solution/.venv
+  - 01-solution/__pycache__
+  - 02-solution/python/build
+  - 02-solution/typescript/build
