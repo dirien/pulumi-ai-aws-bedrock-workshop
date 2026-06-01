@@ -113,6 +113,8 @@ Set your unique stack name (replace `<id>` with the identifier you picked in Mod
 pulumi config set stackName agentcore-basic-<id>
 ```
 
+> Forgot your `<id>`? It's the 2-5 character identifier from [Module 0, Step 4](00-setup-and-orientation.md#step-4-pick-your-unique-identifier). Use the same one in every module so your resources don't collide with other participants'.
+
 ## Step 2: Add the agent code
 
 This is the agent from Module 1, unchanged. Create `agent-code/basic_agent.py`:

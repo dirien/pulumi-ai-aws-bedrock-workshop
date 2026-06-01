@@ -122,6 +122,8 @@ Set your unique stack name (replace `<id>` with the identifier you picked in Mod
 pulumi config set stackName agentcore-weather-<id>
 ```
 
+> Forgot your `<id>`? It's the 2-5 character identifier from [Module 0, Step 4](00-setup-and-orientation.md#step-4-pick-your-unique-identifier). Use the same one in every module so your resources don't collide with other participants'.
+
 ## Step 2: Write the weather agent code
 
 Create the agent source directory:
