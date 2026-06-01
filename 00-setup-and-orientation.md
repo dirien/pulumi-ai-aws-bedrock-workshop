@@ -202,13 +202,53 @@ environment:
 EOF
 ```
 
-Run a preview:
+Deploy it:
 
 ```bash
-pulumi preview
+pulumi up
 ```
 
-If this succeeds, your AWS credentials are working through ESC and you're ready for Module 1. Destroy the test project:
+Pulumi shows you the plan, asks for confirmation, then creates the resources:
+
+```text
+Previewing update (dev)
+
+View in Browser (Ctrl+O): https://app.pulumi.com/dirie/verify-setup/dev/previews/23db9393-5f12-4953-85b7-e81b647446cb
+
+     Type                 Name              Plan
+ +   pulumi:pulumi:Stack  verify-setup-dev  create
+ +   └─ aws:s3:Bucket     my-bucket         create
+
+Outputs:
+    bucketName: [unknown]
+
+Resources:
+    + 2 to create
+
+Do you want to perform this update? yes
+Updating (dev)
+
+View in Browser (Ctrl+O): https://app.pulumi.com/dirie/verify-setup/dev/updates/1
+
+     Type                 Name              Status
+ +   pulumi:pulumi:Stack  verify-setup-dev  created (7s)
+ +   └─ aws:s3:Bucket     my-bucket         created (2s)
+
+Outputs:
+    bucketName: "my-bucket-697106d"
+
+Resources:
+    + 2 created
+
+Duration: 9s
+```
+
+That one command exercised the whole chain: Pulumi pulled your AWS credentials from
+the ESC environment, called AWS, and created a real S3 bucket, then printed the
+bucket's generated name as a stack output. If you got that far, your setup works and
+you're ready for Module 1.
+
+Now tear the test project back down:
 
 ```bash
 # Destroy the resources
@@ -254,6 +294,6 @@ The core path runs 0 → 1 → 2 → 3 → 5. You start by running an agent loca
 - Pulumi Cloud stores your stack state and hosts ESC; Bedrock serves the LLMs and AgentCore runs your agent containers
 - Strands SDK is the Python framework for writing agent logic
 - Pulumi ESC stores AWS credentials encrypted and injects them into every deployment automatically
-- Your local setup can authenticate with AWS and run `pulumi preview`
+- Your local setup can authenticate with AWS and deploy real resources with `pulumi up`
 
 Next up: [Module 1: Hello, agent! Run locally](01-hello-agent.md)
