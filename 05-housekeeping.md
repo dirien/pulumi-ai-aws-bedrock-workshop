@@ -40,16 +40,6 @@ cd ..
 
 This removes the S3 bucket, the IAM execution role, and the AgentCore Runtime.
 
-## Verification
-
-Check that everything is gone:
-
-1. Open [Pulumi Cloud](https://app.pulumi.com) and verify all stacks show 0 resources
-2. In the AWS Console, check:
-   - **S3**: No buckets with `agentcore-` prefix
-   - **Bedrock AgentCore**: No runtimes listed
-   - **ECR / CodeBuild** (Modules 3-4 only): No repositories or build projects with `agentcore-` prefix
-
 ## Optional cleanup
 
 Remove local project directories:
