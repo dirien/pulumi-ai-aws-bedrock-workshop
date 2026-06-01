@@ -24,9 +24,9 @@ invoke it from anywhere.
 
 AgentCore can run your agent two ways: from a **container image**, or from a
 **`.zip` of your code** (called *direct code deployment*). We use direct code
-here because it's dramatically simpler: there's no Dockerfile, no image registry,
-and no build pipeline. You hand AgentCore a zip in S3 and it runs it - think AWS
-Lambda, but for agents.
+here because it's much simpler: no Dockerfile, no image registry, no build
+pipeline. You hand AgentCore a zip in S3 and it runs it - think AWS Lambda, but for
+agents.
 
 The deployment is just four resources:
 

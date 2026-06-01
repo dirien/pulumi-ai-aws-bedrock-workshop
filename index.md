@@ -7,7 +7,7 @@ title: Home
 
 Welcome to the Deploying AI Agents on AWS workshop.
 
-In this hands-on workshop, you'll learn how to build, deploy, and connect AI agents on AWS using Pulumi and Amazon Bedrock AgentCore. You'll start by running an agent on your own laptop, then deploy it, then grow it into a multi-tool agent that browses the web, runs Python code, remembers user preferences, and writes reports to S3 (Simple Storage Service).
+In this hands-on workshop, you'll build, deploy, and connect AI agents on AWS using Pulumi and Amazon Bedrock AgentCore. You start by running an agent on your own laptop, deploy that same agent to the cloud, then have agents call each other. If you take the stretch goal, you'll also build an agent that browses the web, runs Python, and remembers what you tell it.
 
 ## What you'll build
 
