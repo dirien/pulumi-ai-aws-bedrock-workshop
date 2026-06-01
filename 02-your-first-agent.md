@@ -131,7 +131,15 @@ pulumi config set stackName agentcore-basic-<id>
 
 ## Step 2: Add the agent code
 
-This is the agent from Module 1, unchanged. Create `agent-code/basic_agent.py`:
+Create an `agent-code` folder inside your project to hold the agent and its
+dependencies:
+
+```bash
+mkdir agent-code
+```
+
+This is the agent from Module 1, unchanged. Create `basic_agent.py` inside
+`agent-code` and copy the content in:
 
 ```python
 from strands import Agent
@@ -166,7 +174,8 @@ if __name__ == "__main__":
     app.run()
 ```
 
-Create `agent-code/requirements.txt`:
+Create `requirements.txt` inside `agent-code` as well, with the agent's runtime
+dependencies:
 
 ```text
 strands-agents
