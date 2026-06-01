@@ -72,7 +72,6 @@ The code from this workshop is yours to keep. Fork the repo and use the solution
 
 If you want to go further, here are some things we didn't cover today:
 
-- AgentCore Gateway can put JWT auth and Cedar policies in front of an MCP server
 - AgentCore can run MCP tools server-side, without routing through your agent container
 - MCP servers can be stateful, maintaining session state and prompting users for input via elicitation
 - Memory events can stream to Kinesis for real-time processing pipelines
