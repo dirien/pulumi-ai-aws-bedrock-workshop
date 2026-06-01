@@ -402,7 +402,9 @@ The orchestrator uses the same `requirements.txt` and `Dockerfile` as the specia
 
 ## Step 4: Create the buildspecs
 
-Each agent has its own CodeBuild buildspec. Both follow the same pattern: authenticate to ECR, build the Docker image for ARM64, and push it. Create `buildspec-specialist.yml`:
+Each agent has its own CodeBuild buildspec. Both follow the same pattern: authenticate to ECR, build the Docker image for ARM64, and push it. Both files live in the **module root** (next to the two `agent-*-code` folders), where the Pulumi program reads them.
+
+Create `buildspec-specialist.yml` in the module root:
 
 ```yaml
 version: 0.2
@@ -430,7 +432,7 @@ phases:
       - echo Specialist Agent ARM64 Docker image pushed successfully
 ```
 
-Create `buildspec-orchestrator.yml`:
+Create `buildspec-orchestrator.yml`, also in the module root:
 
 ```yaml
 version: 0.2
