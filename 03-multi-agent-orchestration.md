@@ -2702,35 +2702,96 @@ This takes a while - two Docker images are built sequentially in CodeBuild. Expe
 
 ## Step 8: Test
 
-Grab the orchestrator ARN and run the test script:
+This script sends a simple prompt and a delegation prompt to the orchestrator, and
+(if you pass its ARN) hits the specialist directly too. Create `test_multi_agent.py`
+in the module root and copy the content in:
+
+```python
+#!/usr/bin/env python3
+"""Invoke the orchestrator (and optionally the specialist) and print the replies.
+
+Usage:
+    python test_multi_agent.py <orchestrator_arn> [specialist_arn]
+"""
+import json
+import sys
+
+import boto3
+from botocore.config import Config
+
+
+def invoke(client, arn, prompt):
+    print(f"\nPrompt: {prompt}")
+    print("Invoking (A2A flows can take a few minutes)...")
+    response = client.invoke_agent_runtime(
+        agentRuntimeArn=arn,
+        qualifier="DEFAULT",
+        payload=json.dumps({"prompt": prompt}),
+    )
+    status = response["ResponseMetadata"]["HTTPStatusCode"]
+    result = json.loads(response["response"].read().decode("utf-8"))
+    print(f"Status: {status}")
+    print(f"Response: {result.get('response', result.get('error', result))}")
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python test_multi_agent.py <orchestrator_arn> [specialist_arn]")
+        sys.exit(1)
+
+    orchestrator_arn = sys.argv[1]
+    specialist_arn = sys.argv[2] if len(sys.argv) > 2 else None
+    region = orchestrator_arn.split(":")[3]
+
+    # A2A calls in the orchestrator can run for minutes; bump the read timeout
+    # well past boto3's 60s default so the test doesn't give up early.
+    client = boto3.client(
+        "bedrock-agentcore",
+        region_name=region,
+        config=Config(read_timeout=900, connect_timeout=30, retries={"max_attempts": 0}),
+    )
+
+    # Simple query: the orchestrator answers directly.
+    invoke(client, orchestrator_arn, "Hello! Can you introduce yourself?")
+
+    # Complex query: the orchestrator delegates to the specialist (A2A).
+    invoke(
+        client,
+        orchestrator_arn,
+        "Ask the specialist: what is serverless computing and when should I use it?",
+    )
+
+    # Optionally hit the specialist directly to confirm it works on its own.
+    if specialist_arn:
+        invoke(
+            client,
+            specialist_arn,
+            "What are the pros and cons of event-driven architecture?",
+        )
+
+
+if __name__ == "__main__":
+    main()
+```
+
+The script needs `boto3` (Codespaces has it preinstalled, so you can skip this there):
+
+```bash
+pip install boto3
+```
+
+Grab both ARNs from the stack outputs and run it. `pulumi env run` injects the AWS
+credentials:
 
 ```bash
 export ORCH_ARN=$(pulumi stack output orchestratorRuntimeArn)
-python test_multi_agent.py $ORCH_ARN
-```
-
-Try two types of queries to verify the routing logic:
-
-1. A simple greeting: `"Hello, how are you?"` - the orchestrator handles this directly without calling the specialist
-2. A complex question: `"Analyze the trade-offs between microservices and monolithic architectures"` - the orchestrator delegates to the specialist
-
-You can tell which agent answered by checking the `"agent"` field in the response JSON. When the orchestrator delegates, you'll see `"agent": "specialist"` in the specialist's sub-response, wrapped in the orchestrator's response.
-
-You can also invoke the specialist directly to verify it works independently:
-
-```bash
 export SPEC_ARN=$(pulumi stack output specialistRuntimeArn)
-pulumi env run aws-bedrock-workshop/dev -- uv run python -c "
-import boto3, json, os
-client = boto3.client('bedrock-agentcore', region_name='us-east-1')
-r = client.invoke_agent_runtime(
-    agentRuntimeArn='$SPEC_ARN',
-    qualifier='DEFAULT',
-    payload=json.dumps({'prompt': 'What are the pros and cons of event-driven architecture?'}),
-)
-print(r['response'].read().decode())
-"
+pulumi env run aws-bedrock-workshop/dev -- python test_multi_agent.py $ORCH_ARN $SPEC_ARN
 ```
+
+The first prompt is a greeting the orchestrator answers itself. The second asks it
+to delegate, so the orchestrator calls the specialist over A2A and wraps the reply.
+The third invokes the specialist directly to confirm it works on its own.
 
 ## Try it yourself
 
