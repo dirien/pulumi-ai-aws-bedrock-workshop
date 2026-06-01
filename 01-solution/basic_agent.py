@@ -41,7 +41,7 @@ async def invoke(payload=None):
 
         return {"status": "success", "response": response.message["content"][0]["text"]}
 
-    except Exception as e:  # noqa: BLE001 - surface any error back to the caller
+    except Exception as e:
         return {"status": "error", "error": str(e)}
 
 
