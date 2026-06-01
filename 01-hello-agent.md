@@ -90,7 +90,7 @@ Three things to notice:
 
 ## Step 2: Install dependencies
 
-Create `requirements.txt`:
+Create a `requirements.txt` file in your IDE and copy the content in:
 
 ```text
 strands-agents
