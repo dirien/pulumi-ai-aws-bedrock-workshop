@@ -81,6 +81,13 @@ flowchart LR
 
 ## Step 1: Create a new Pulumi project
 
+If you're still inside the previous module's folder, hop back to the workshop root
+first (`cd -` returns to wherever you were before; adjust if needed):
+
+```bash
+cd -
+```
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
@@ -103,11 +110,13 @@ pulumi new aws-python --name multi-agent --yes
 
 </div>
 
-Add the ESC environment to `Pulumi.dev.yaml`:
+Add the ESC environment reference to `Pulumi.dev.yaml`:
 
-```yaml
+```bash
+cat >> Pulumi.dev.yaml <<'EOF'
 environment:
   - aws-bedrock-workshop/dev
+EOF
 ```
 
 The `pulumi new` template already includes the AWS provider. Pin it to the version this workshop uses:
