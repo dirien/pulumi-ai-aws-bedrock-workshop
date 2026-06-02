@@ -777,6 +777,11 @@ open PRs against their fork during the modules.
 <div class="absolute inset-0 flex flex-col justify-center items-center px-20 text-center">
   <h1 class="!text-[7.2rem] !leading-tight !font-semibold !tracking-tight !m-0 !text-[var(--p-primary)] !max-w-[95%]">Let's go!</h1>
   <p class="!mt-6 !text-[3rem] !leading-tight !m-0 opacity-80">Start the workshop!</p>
+
+  <div class="mt-12 bg-white rounded-lg p-3 inline-block shadow-lg">
+    <img src="/img/instructions-qr.png" class="w-48 h-48" alt="Workshop instructions QR" />
+  </div>
+  <p class="!mt-4 !text-[1.4rem] !m-0 opacity-60">Scan for the instructions</p>
 </div>
 
 <!--
