@@ -2,6 +2,12 @@
   "name": "Pulumi AI AWS Bedrock Workshop",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
 
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "latest" },
     "ghcr.io/devcontainers/features/python:1": { "version": "latest" },
