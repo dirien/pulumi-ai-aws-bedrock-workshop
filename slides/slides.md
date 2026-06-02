@@ -722,6 +722,25 @@ Hand-off into the hands-on portion: repo, prerequisites, and the first module.
 
 ---
 
+<div class="absolute inset-0 flex flex-col justify-center items-center gap-12 px-20 text-center">
+  <h1 class="!text-[3.6rem] !font-semibold !tracking-tight !leading-tight !m-0 !max-w-[90%]">
+    Fork this repo first
+  </h1>
+  <div class="bg-white rounded-2xl p-5 shadow-2xl">
+    <img src="/img/repo-qr.png" class="w-[22rem] h-[22rem]" alt="github.com/dirien/pulumi-ai-aws-bedrock-workshop" />
+  </div>
+  <a href="https://github.com/dirien/pulumi-ai-aws-bedrock-workshop" class="!text-[1.8rem] !font-medium !text-[var(--p-primary)] !no-underline flex items-center gap-3">
+    <carbon-logo-github /> github.com/dirien/pulumi-ai-aws-bedrock-workshop
+  </a>
+</div>
+
+<!--
+Everyone forks the repo before we start — they'll push their own changes and
+open PRs against their fork during the modules.
+-->
+
+---
+
 <div class="absolute inset-0 flex items-center justify-center bg-white p-8">
   <div class="htw">
     <img src="/img/how-to-workshop.png" class="w-full h-full object-contain" alt="How to workshop: 1) Read the instructions carefully  2) Copy paste the example code, carefully  3) Ask questions" />
