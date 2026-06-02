@@ -1,6 +1,13 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as command from "@pulumi/command";
+import * as fs from "fs";
+import * as path from "path";
+
+// Fork-instruction screenshot, embedded as a data URI so the credential page stays a single self-contained HTML object.
+const forkImg =
+  "data:image/png;base64," +
+  fs.readFileSync(path.join(__dirname, "assets", "fork.png")).toString("base64");
 
 // ============================================================================
 // Configuration
@@ -8,6 +15,10 @@ import * as command from "@pulumi/command";
 
 const config = new pulumi.Config();
 const workshopTitle = config.get("workshopTitle") || "Workshop Credentials";
+// Overall page title shown in the hero (configurable). Defaults to the workshop's topic.
+const pageTitle =
+  config.get("pageTitle") ||
+  "Deploying AI Agents on AWS with Pulumi and Amazon Bedrock AgentCore";
 const workshopName = config.require("workshopName");
 // Extra display values merged onto the credential page (optional – IAM creds are always added automatically)
 const extraValues = config.getObject<Record<string, string>>("values") ?? {};
@@ -56,72 +67,83 @@ function generateHtml(
   const h1 = title
     .replace("Pulumi", '<span class="hl">Pulumi</span>')
     .replace("AgentCore", '<span class="hl">AgentCore</span>');
+  const pageTitleHtml = pageTitle
+    .replace("Pulumi", '<span class="hl">Pulumi</span>')
+    .replace("AgentCore", '<span class="hl">AgentCore</span>');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${pageTitle}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #08080c; --surface: rgba(255,255,255,0.03);
-      --border: rgba(255,255,255,0.07);
-      --amber: #f0a830; --amber-dim: #c78520; --amber-glow: rgba(240,168,48,0.08);
-      --green: #34d399; --text: #d4d4d8; --text-dim: #63636e;
-      --font-display: 'Outfit', system-ui, sans-serif;
-      --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+      --bg: #1f1b21;            /* Pulumi Service Black */
+      --surface: #231f33;      /* Violet 50 (dark) */
+      --border: #322c3d;
+      --violet: #9077f3;       /* Violet 500 (accent) */
+      --violet-strong: #5a30c5;/* Violet 700 (primary) */
+      --violet-glow: rgba(144,119,243,0.12);
+      --green: #21c45d;        /* Green accent (status) */
+      --text: #e6e4ea; --text-dim: #9997a0;
+      --font-display: 'Inter', 'Helvetica Neue', Helvetica, Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Monaspace Neon', 'Cascadia Code', Menlo, Consolas, ui-monospace, monospace;
     }
     html { font-size: 16px; }
     body {
       font-family: var(--font-display); background: var(--bg); color: var(--text);
       min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased;
-    }
-    body::after {
-      content: ''; position: fixed; inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
-      pointer-events: none; z-index: 1000;
+      line-height: 1.3; font-feature-settings: 'liga' 1, 'calt' 1, 'cv11' 1;
     }
     .glow {
-      position: fixed; width: 600px; height: 600px; border-radius: 50%;
-      background: radial-gradient(circle, var(--amber-glow) 0%, transparent 70%);
-      top: -200px; left: 50%; transform: translateX(-50%);
+      position: fixed; width: 640px; height: 640px; border-radius: 50%;
+      background: radial-gradient(circle, var(--violet-glow) 0%, transparent 70%);
+      top: -220px; left: 50%; transform: translateX(-50%);
       pointer-events: none; z-index: 0;
     }
     .container { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 72px 24px 80px; }
     @media (max-width: 640px) { .container { padding: 40px 16px 48px; } }
+    .fork-block { margin-bottom: 8px; }
+    .fork-label { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 14px; }
+    .fork-imglink { display: block; margin-bottom: 16px; }
+    .fork-img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; }
     .header { margin-bottom: 40px; }
     .header-meta {
       display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em;
+      font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em;
       text-transform: uppercase; color: var(--text-dim);
     }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    h1 { font-size: clamp(1.6rem, 4.5vw, 2.2rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; color: #fff; margin-bottom: 12px; }
-    .hl { color: var(--amber); }
+    h1 { font-size: clamp(1.7rem, 4.5vw, 2.4rem); font-weight: 600; letter-spacing: -0.05em; line-height: 1.1; color: #fff; margin-bottom: 12px; }
+    .hero { margin-bottom: 4px; }
+    h2.step-title { font-size: clamp(1.15rem, 3vw, 1.45rem); font-weight: 600; letter-spacing: -0.04em; line-height: 1.2; color: #fff; margin-bottom: 14px; }
+    .hl { color: var(--violet); }
     .subtitle { font-family: var(--font-mono); font-size: 13px; color: var(--text-dim); line-height: 1.6; }
-    .subtitle a { color: var(--amber-dim); text-decoration: none; }
+    .subtitle a { color: var(--violet); text-decoration: none; }
     .subtitle a:hover { text-decoration: underline; }
     .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 32px 0; }
-    .yaml-wrapper { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .yaml-wrapper { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
     .yaml-toolbar {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 16px; border-bottom: 1px solid var(--border);
       background: rgba(255,255,255,0.02);
     }
     .yaml-lang { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+    .repo-link { font-family: var(--font-mono); font-size: 11px; color: var(--violet); text-decoration: none; letter-spacing: 0.02em; }
+    .repo-link:hover { text-decoration: underline; }
     .copy-btn {
       font-family: var(--font-mono); font-size: 10px; font-weight: 600;
       letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim);
       background: none; border: 1px solid var(--border); border-radius: 4px;
       padding: 4px 12px; cursor: pointer; transition: color 0.15s, border-color 0.15s;
     }
-    .copy-btn:hover { color: var(--amber); border-color: rgba(240,168,48,0.4); }
+    .copy-btn:hover { color: var(--violet); border-color: var(--violet); }
     .copy-btn .done { display: none; color: var(--green); }
     .copy-btn.copied .label { display: none; }
     .copy-btn.copied .done { display: inline; }
@@ -133,33 +155,54 @@ function generateHtml(
     .toast {
       position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(16px);
       font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
-      color: var(--green); background: rgba(8,8,12,0.95);
-      border: 1px solid rgba(52,211,153,0.2); border-radius: 6px; padding: 10px 20px;
+      color: var(--green); background: rgba(31,27,33,0.95);
+      border: 1px solid rgba(33,196,93,0.25); border-radius: 6px; padding: 10px 20px;
       opacity: 0; transition: opacity 0.25s, transform 0.25s;
       pointer-events: none; z-index: 999; backdrop-filter: blur(12px);
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .footer { margin-top: 48px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: center; letter-spacing: 0.02em; }
-    .footer a { color: var(--amber-dim); text-decoration: none; }
+    .footer a { color: var(--violet); text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="glow"></div>
   <div class="container">
-    <header class="header">
-      <div class="header-meta">
-        <span class="dot"></span>
-        <span>live &middot; ${count} credential${count === 1 ? "" : "s"} &middot; ${now}</span>
+    <div class="hero">
+      <span class="fork-label">${workshopName}</span>
+      <h1>${pageTitleHtml}</h1>
+      <p class="subtitle">Two steps to get your workshop environment ready.</p>
+    </div>
+    <div class="divider"></div>
+    <div class="fork-block">
+      <span class="fork-label">Step 1 &middot; Fork the repo on GitHub</span>
+      <h2 class="step-title">Fork the repository</h2>
+      <a class="fork-imglink" href="https://github.com/dirien/pulumi-ai-aws-bedrock-workshop/fork" target="_blank">
+        <img class="fork-img" src="${forkImg}" alt="Click Fork on dirien/pulumi-ai-aws-bedrock-workshop">
+      </a>
+      <div class="yaml-wrapper">
+        <div class="yaml-toolbar">
+          <a class="repo-link" href="https://github.com/dirien/pulumi-ai-aws-bedrock-workshop" target="_blank">github.com/dirien/pulumi-ai-aws-bedrock-workshop &#8599;</a>
+          <button class="copy-btn" onclick="copyText('repoCmd', this)">
+            <span class="label">COPY</span>
+            <span class="done">COPIED</span>
+          </button>
+        </div>
+        <pre class="yaml-pre" id="repoCmd">git clone https://github.com/dirien/pulumi-ai-aws-bedrock-workshop.git</pre>
       </div>
-      <h1>${h1}</h1>
+    </div>
+    <div class="divider"></div>
+    <header class="header">
+      <span class="fork-label">Step 2 &middot; Add your AWS credentials</span>
+      <h2 class="step-title">${h1}</h2>
       <p class="subtitle">Paste this YAML into your <a href="https://www.pulumi.com/product/esc/" target="_blank">Pulumi ESC</a> environment, then run <code style="font-family:var(--font-mono)">pulumi env open</code> to verify.</p>
     </header>
     <div class="divider"></div>
     <div class="yaml-wrapper">
       <div class="yaml-toolbar">
         <span class="yaml-lang">ESC YAML</span>
-        <button class="copy-btn" id="copyBtn" onclick="copyYaml()">
+        <button class="copy-btn" id="copyBtn" onclick="copyText('yamlPre', this)">
           <span class="label">COPY</span>
           <span class="done">COPIED</span>
         </button>
@@ -171,11 +214,10 @@ function generateHtml(
       Served from <a href="https://www.pulumi.com/product/esc/" target="_blank">Pulumi ESC</a> &middot; Deployed with <a href="https://www.pulumi.com" target="_blank">Pulumi</a>
     </footer>
   </div>
-  <div class="toast" id="toast">YAML copied to clipboard</div>
+  <div class="toast" id="toast">Copied to clipboard</div>
   <script>
-    function copyYaml() {
-      navigator.clipboard.writeText(document.getElementById('yamlPre').innerText).then(() => {
-        const btn = document.getElementById('copyBtn');
+    function copyText(id, btn) {
+      navigator.clipboard.writeText(document.getElementById(id).innerText).then(() => {
         btn.classList.add('copied');
         document.getElementById('toast').classList.add('show');
         setTimeout(() => {
