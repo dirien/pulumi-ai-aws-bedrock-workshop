@@ -96,7 +96,7 @@ _includes/       → project files
 
 ## Scoped AGENTS.md (MUST read when working in these directories)
 <!-- AGENTS-GENERATED:START scope-index -->
-- `slides/` — Slidev deck (install needs `GITHUB_TOKEN` for the `@pulumi` npm registry)
+- `slides/` — Slidev deck (installs tokenless from the public npm registry)
 <!-- AGENTS-GENERATED:END scope-index -->
 
 > **Agents**: When you read or edit files in a listed directory, you **must** load its AGENTS.md first. It contains directory-specific conventions that override this root file.

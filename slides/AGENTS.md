@@ -10,16 +10,16 @@ all images and fonts are under `public/`.
 
 | Task | Command | Notes |
 |------|---------|-------|
-| Install deps | `GITHUB_TOKEN="$(gh auth token)" npm install` | Token is **required** — see below |
-| Dev server | `npm run dev -- --port 3030` | Token only needed for install, not dev/build |
+| Install deps | `npm install` | Tokenless — pulls `@pulumi/slidev-theme` from public npm |
+| Dev server | `npm run dev -- --port 3030` | |
 | Build static site | `npm run build` | Outputs to `dist/` (gitignored) |
 | Export to PDF/PNG | `npm run export` | Needs `playwright-chromium` (install with `--no-save`) |
 
-## GITHUB_TOKEN is required to install
+## No auth needed to install
 
-`.npmrc` points `@pulumi` at the GitHub Packages registry, so `npm install` fails
-without auth. Pull a token from the `gh` CLI: `GITHUB_TOKEN="$(gh auth token)"`.
-The token is needed for `install` only — `dev` and `build` run without it.
+`@pulumi/slidev-theme` is published on the public npm registry, so `npm install`
+runs without any token. (There is no `.npmrc` scope redirect — an earlier version
+pointed `@pulumi` at GitHub Packages, which required a `GITHUB_TOKEN`; that is gone.)
 
 ## Conventions
 
@@ -54,4 +54,4 @@ The token is needed for `install` only — `dev` and `build` run without it.
 
 ### Never Do
 - Commit `node_modules/`, `dist/`, or `.slidev/` (all gitignored).
-- Commit a `GITHUB_TOKEN` or any credential.
+- Commit any credential or token.
