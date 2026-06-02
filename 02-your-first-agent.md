@@ -212,9 +212,18 @@ cp agent-code/basic_agent.py build/
 find build -name '__pycache__' -type d -prune -exec rm -rf {} +
 ```
 
-You won't run this yourself. The Pulumi program calls it during `pulumi up` (next
-step), and the `cd "$(dirname "$0")"` line means it always builds relative to its
-own location, creating the `build/` directory in the project root.
+You won't run this yourself - the Pulumi program runs it during `pulumi up` (next
+step). The `cd "$(dirname "$0")"` line keeps it building in its own directory, so
+`build/` lands in the project root.
+
+One catch, though: Pulumi reads `build/` when it *previews* the deployment, and
+that happens before the build script ever runs. The directory has to exist before
+your first `pulumi up`, so create it now. Empty is fine - the build script fills
+it in:
+
+```bash
+mkdir build
+```
 
 `build/` is generated output, so keep it out of git:
 
