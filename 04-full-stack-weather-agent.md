@@ -65,27 +65,25 @@ Unlike regular CloudWatch logs written directly by your code, vended logs go thr
 
 ## Step 1: Create a new Pulumi project
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 mkdir 04-weather-agent && cd 04-weather-agent
 pulumi new aws-typescript --name weather-agent --yes
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```bash
 mkdir 04-weather-agent && cd 04-weather-agent
 pulumi new aws-python --name weather-agent --runtime-options toolchain=uv --yes
 ```
 
-</div>
-
-</div>
+</details>
 
 Add the ESC environment to `Pulumi.dev.yaml`:
 
@@ -96,17 +94,17 @@ environment:
 
 The `pulumi new` template already includes the AWS provider. Pin it to the version this workshop uses:
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 npm install @pulumi/aws@7.23.0
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 The `pulumi new` template writes a `requirements.txt`. Replace it with the pinned
 dependencies, then install:
@@ -119,9 +117,7 @@ EOF
 pulumi install
 ```
 
-</div>
-
-</div>
+</details>
 
 Set your unique stack name (replace `<id>` with the identifier you picked in Module 0):
 
@@ -217,7 +213,6 @@ async def run_browser_task(browser_session, bedrock_chat, task: str) -> str:
         console.print(f"[red]❌ Browser task error: {e}[/red]")
         raise
 
-
 async def initialize_browser_session():
     """Initialize Browser-use session with AgentCore WebSocket connection"""
     try:
@@ -250,7 +245,6 @@ async def initialize_browser_session():
     except Exception as e:
         console.print(f"[red]❌ Failed to initialize browser session: {e}[/red]")
         raise
-
 
 # Tools for Strands Agent
 @tool
@@ -490,7 +484,6 @@ async def async_main(query=None):
         traceback.print_exc()
         return {"status": "error", "error": str(e)}
 
-
 @app.entrypoint
 async def invoke(payload=None):
     try:
@@ -509,7 +502,6 @@ async def invoke(payload=None):
 
     except Exception as e:
         return {"error": str(e)}
-
 
 if __name__ == "__main__":
     app.run()
@@ -577,10 +569,8 @@ from datetime import datetime, timezone
 
 import boto3
 
-
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
-
 
 def handler(event, _context):
     LOGGER.info("Received event: %s", json.dumps(event))
@@ -645,10 +635,8 @@ import time
 
 import boto3
 
-
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
-
 
 def handler(event, _context):
     LOGGER.info("Received event: %s", json.dumps(event))
@@ -726,9 +714,8 @@ Now for the infrastructure. We'll walk through it section by section. Each snipp
 
 The configuration block defines all tuneable parameters. `stackName` is used as a prefix for every resource name to avoid collisions between workshop participants.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
@@ -755,9 +742,10 @@ const currentIdentity = aws.getCallerIdentityOutput({});
 const currentRegion = aws.getRegionOutput({});
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 import hashlib
@@ -786,9 +774,7 @@ current_identity = aws.get_caller_identity_output()
 current_region = aws.get_region_output()
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Browser Tool
 
@@ -799,9 +785,8 @@ current_region = aws.get_region_output()
 
 The Browser resource is a standalone AWS resource. `networkMode: "PUBLIC"` means the browser can reach public internet URLs - needed to scrape weather.gov. The resource ID (`browser.browserId` / `browser.browser_id`) is passed to the agent as an environment variable at runtime.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const browser = new aws.bedrock.AgentcoreBrowser("browser", {
@@ -817,9 +802,10 @@ const browser = new aws.bedrock.AgentcoreBrowser("browser", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 browser = aws.bedrock.AgentcoreBrowser(
@@ -834,9 +820,7 @@ browser = aws.bedrock.AgentcoreBrowser(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Code Interpreter Tool
 
@@ -847,9 +831,8 @@ browser = aws.bedrock.AgentcoreBrowser(
 
 The Code Interpreter is also a standalone resource. Your agent sends Python code to it via the `CodeInterpreter` client and gets execution results back over a streaming response.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const codeInterpreter = new aws.bedrock.AgentcoreCodeInterpreter(
@@ -868,9 +851,10 @@ const codeInterpreter = new aws.bedrock.AgentcoreCodeInterpreter(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 code_interpreter = aws.bedrock.AgentcoreCodeInterpreter(
@@ -885,9 +869,7 @@ code_interpreter = aws.bedrock.AgentcoreCodeInterpreter(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Memory
 
@@ -898,9 +880,8 @@ code_interpreter = aws.bedrock.AgentcoreCodeInterpreter(
 
 The Memory resource stores events with a 30-day expiry. Events are tagged with actor IDs and session IDs so different users or sessions can have separate preferences.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const memory = new aws.bedrock.AgentcoreMemory("memory", {
@@ -914,9 +895,10 @@ const memory = new aws.bedrock.AgentcoreMemory("memory", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 memory = aws.bedrock.AgentcoreMemory(
@@ -931,9 +913,7 @@ memory = aws.bedrock.AgentcoreMemory(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### S3 Buckets
 
@@ -944,9 +924,8 @@ memory = aws.bedrock.AgentcoreMemory(
 
 This module needs two buckets: one for agent source code (input to CodeBuild) and one for results (where the agent writes its Markdown report). Both have versioning enabled and all public access blocked.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const agentSourceBucket = new aws.s3.Bucket("agent_source", {
@@ -998,9 +977,10 @@ new aws.s3.BucketVersioning("results", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 agent_source_bucket = aws.s3.Bucket(
@@ -1054,17 +1034,14 @@ aws.s3.BucketVersioning(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Upload source code to S3
 
 Pulumi's `FileArchive` zips the `agent-code` directory at deploy time and uploads it. The object's `versionId` is used later as a trigger to re-run CodeBuild when the source changes.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const agentSourceObject = new aws.s3.BucketObjectv2("agent_source", {
@@ -1077,9 +1054,10 @@ const agentSourceObject = new aws.s3.BucketObjectv2("agent_source", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 agent_source_object = aws.s3.BucketObjectv2(
@@ -1091,9 +1069,7 @@ agent_source_object = aws.s3.BucketObjectv2(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### ECR Repository
 
@@ -1104,9 +1080,8 @@ agent_source_object = aws.s3.BucketObjectv2(
 
 The ECR repository stores the Docker images that CodeBuild produces. The lifecycle policy keeps only the last 5 images to avoid accumulating storage costs.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const weatherEcr = new aws.ecr.Repository("weather_ecr", {
@@ -1162,9 +1137,10 @@ new aws.ecr.LifecyclePolicy("weather_ecr", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 weather_ecr = aws.ecr.Repository(
@@ -1223,9 +1199,7 @@ aws.ecr.LifecyclePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Agent Execution Role
 
@@ -1236,9 +1210,8 @@ aws.ecr.LifecyclePolicy(
 
 The agent execution role is the identity AgentCore uses to run your container. The trust relationship restricts assumption to `bedrock-agentcore.amazonaws.com` from your account only. In addition to ECR, CloudWatch, X-Ray, and Bedrock permissions, this role also has `S3ResultsAccess` so the agent can write the Markdown report to the results bucket.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const agentExecution = new aws.iam.Role("agent_execution", {
@@ -1392,9 +1365,10 @@ const agentExecutionRolePolicy = new aws.iam.RolePolicy("agent_execution", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 agent_execution = aws.iam.Role(
@@ -1545,9 +1519,7 @@ agent_execution_role_policy = aws.iam.RolePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### CodeBuild Role and policy
 
@@ -1558,9 +1530,8 @@ agent_execution_role_policy = aws.iam.RolePolicy(
 
 CodeBuild needs permissions to write logs, push to ECR, and read source code from S3.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const codebuildRole = new aws.iam.Role("codebuild", {
@@ -1636,9 +1607,10 @@ const codebuildRolePolicy = new aws.iam.RolePolicy("codebuild", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 agent_image_project_name = f"{stack_name}-agent-build"
@@ -1721,9 +1693,7 @@ codebuild_role_policy = aws.iam.RolePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Build Trigger Lambda
 
@@ -1734,9 +1704,8 @@ codebuild_role_policy = aws.iam.RolePolicy(
 
 This Lambda role uses an inline policy scoped exactly to the one CodeBuild project it needs to start and poll. The Lambda timeout is 900 seconds (15 minutes) to accommodate slow builds.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const agentImageProjectName = `${stackName}-agent-build`;
@@ -1806,9 +1775,10 @@ const buildTriggerFunction = new aws.lambda.Function("build_trigger", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 build_trigger_role = aws.iam.Role(
@@ -1878,9 +1848,7 @@ build_trigger_function = aws.lambda_.Function(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### CodeBuild Project
 
@@ -1891,9 +1859,8 @@ build_trigger_function = aws.lambda_.Function(
 
 The CodeBuild project uses `ARM_CONTAINER` type with the `amazonlinux2-aarch64-standard:3.0` image to produce native ARM64 Docker images. The buildspec content is read from disk and its SHA-256 fingerprint is used as a trigger for the build Lambda.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const buildspecContent = fs.readFileSync(
@@ -1958,9 +1925,10 @@ const agentImage = new aws.codebuild.Project("agent_image", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 buildspec_path = os.path.join(os.path.dirname(__file__), "buildspec.yml")
@@ -2014,9 +1982,7 @@ agent_image = aws.codebuild.Project(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Trigger Build
 
@@ -2027,9 +1993,8 @@ agent_image = aws.codebuild.Project(
 
 `aws.lambda.Invocation` calls the build trigger Lambda synchronously during deployment. The `triggers` map causes Pulumi to re-invoke it whenever the source version, image tag, or buildspec SHA changes.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const buildTriggerInvocationInput = pulumi
@@ -2066,9 +2031,10 @@ const triggerBuild = new aws.lambda.Invocation(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 build_trigger_invocation_input = pulumi.Output.all(
@@ -2105,9 +2071,7 @@ trigger_build = aws.lambda_.Invocation(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Memory Initialization Lambda
 
@@ -2118,9 +2082,8 @@ trigger_build = aws.lambda_.Invocation(
 
 This Lambda's inline policy grants only `bedrock-agentcore:CreateEvent` on the specific Memory resource ARN. Pulumi invokes it once after the Memory is created. The `triggers` map re-invokes it if the memory ID or the Lambda code changes.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const memoryInitRole = new aws.iam.Role("memory_init", {
@@ -2213,9 +2176,10 @@ new aws.lambda.Invocation(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 memory_init_role = aws.iam.Role(
@@ -2309,9 +2273,7 @@ aws.lambda_.Invocation(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Weather Agent Runtime
 
@@ -2322,9 +2284,8 @@ aws.lambda_.Invocation(
 
 The `environmentVariables` block is how the agent code discovers its tool IDs and results bucket at runtime. `BROWSER_ID`, `CODE_INTERPRETER_ID`, and `MEMORY_ID` are all Pulumi outputs resolved at deploy time. The `dependsOn` list ensures the Docker image exists in ECR and all IAM policies are in place before the runtime is created.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const runtimeName = `${stackName}_${agentName}`.replace(/-/g, "_");
@@ -2367,9 +2328,10 @@ const weatherAgent = new aws.bedrock.AgentcoreAgentRuntime(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 runtime_name = f"{stack_name}_{agent_name}".replace("-", "_")
@@ -2411,9 +2373,7 @@ weather_agent = aws.bedrock.AgentcoreAgentRuntime(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Observability - CloudWatch logs and X-Ray traces
 
@@ -2432,9 +2392,8 @@ AgentCore emits logs and traces through the CloudWatch vended logs delivery syst
 >
 > **Using the workshop-provided AWS account?** Skip this step — the trace segment destination is already configured for you.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const agentRuntimeLogs = new aws.cloudwatch.LogGroup(
@@ -2537,9 +2496,10 @@ const tracesLogDelivery = new aws.cloudwatch.LogDelivery(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 agent_runtime_logs = aws.cloudwatch.LogGroup(
@@ -2620,17 +2580,14 @@ traces_log_delivery = aws.cloudwatch.LogDelivery(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Outputs
 
 Export the resource IDs and ARNs that you'll need for testing and monitoring:
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 export const agentRuntimeId = weatherAgent.agentRuntimeId;
@@ -2654,9 +2611,10 @@ export const tracesDeliveryId = tracesLogDelivery.id;
 export const testScriptCommand = pulumi.interpolate`python test_weather_agent.py ${weatherAgent.agentRuntimeArn}`;
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 pulumi.export("agentRuntimeId", weather_agent.agent_runtime_id)
@@ -2685,9 +2643,7 @@ pulumi.export(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ## Step 8: Deploy
 
@@ -2701,25 +2657,23 @@ This takes 5-10 minutes. Pulumi creates the Browser, Code Interpreter, and Memor
 
 Copy `test_weather_agent.py` from the solution folder. The script uses `boto3` to call the AgentCore runtime and to poll S3, so add it to the project first:
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
-
-```bash
-pip install boto3
-```
-
-</div>
-
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 pip install boto3
 ```
 
-</div>
+</details>
 
-</div>
+<details markdown="1">
+<summary>Python Example</summary>
+
+```bash
+pip install boto3
+```
+
+</details>
 
 Then run the test:
 

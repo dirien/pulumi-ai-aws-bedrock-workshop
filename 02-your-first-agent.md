@@ -58,27 +58,25 @@ If you're still inside the Module 1 folder, hop back to the workshop root first
 cd -
 ```
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 mkdir 02-my-first-agent && cd 02-my-first-agent
 pulumi new aws-typescript --name basic-runtime --yes
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```bash
 mkdir 02-my-first-agent && cd 02-my-first-agent
 pulumi new aws-python --name basic-runtime --yes
 ```
 
-</div>
-
-</div>
+</details>
 
 Add the ESC environment reference to `Pulumi.dev.yaml`:
 
@@ -93,17 +91,17 @@ Pin the AWS provider to a version that supports direct code deployment
 (`codeConfiguration` landed in `pulumi-aws` 7.30), and add the `command` provider -
 we'll use it to run the packaging build during `pulumi up`:
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 npm install @pulumi/aws@^7.30.0 @pulumi/command
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 The `pulumi new` template writes a `requirements.txt`. Replace it with the pinned
 dependencies, then install:
@@ -117,9 +115,7 @@ EOF
 pulumi install
 ```
 
-</div>
-
-</div>
+</details>
 
 Set your unique stack name (replace `<id>` with the identifier you picked in Module 0):
 
@@ -147,12 +143,10 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 app = BedrockAgentCoreApp()
 
-
 def create_basic_agent() -> Agent:
     """Create a basic agent with a simple system prompt."""
     system_prompt = "You are a helpful assistant. Answer questions clearly and concisely."
     return Agent(system_prompt=system_prompt, name="BasicAgent")
-
 
 @app.entrypoint
 async def invoke(payload=None):
@@ -168,7 +162,6 @@ async def invoke(payload=None):
         return {"status": "success", "response": response.message["content"][0]["text"]}
     except Exception as e:
         return {"status": "error", "error": str(e)}
-
 
 if __name__ == "__main__":
     app.run()
@@ -242,9 +235,8 @@ hash of the agent code and its dependencies, so the build re-runs only when one 
 those changes - not on every `pulumi up`. The S3 code object then `dependsOn` the
 build, so the zip is always fresh before it's uploaded.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 Replace `index.ts` with:
 
@@ -455,9 +447,10 @@ export const agentRuntimeArn = basicAgent.agentRuntimeArn;
 export const agentRuntimeId = basicAgent.agentRuntimeId;
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 Replace `__main__.py` with:
 
@@ -484,11 +477,9 @@ here = os.path.dirname(__file__)
 agent_code_dir = os.path.join(here, "agent-code")
 build_dir = os.path.join(here, "build")
 
-
 def _sha256(path: str) -> str:
     with open(path, "rb") as f:
         return hashlib.sha256(f.read()).hexdigest()
-
 
 # Hash of the inputs that should trigger a repackage: the agent and its deps.
 source_hash = hashlib.sha256(
@@ -681,9 +672,7 @@ pulumi.export("agentRuntimeArn", basic_agent.agent_runtime_arn)
 pulumi.export("agentRuntimeId", basic_agent.agent_runtime_id)
 ```
 
-</div>
-
-</div>
+</details>
 
 A few things worth noticing:
 
@@ -726,7 +715,6 @@ import sys
 
 import boto3
 
-
 def main():
     if len(sys.argv) < 2:
         print("Usage: python test_basic_agent.py <agent_runtime_arn>")
@@ -750,7 +738,6 @@ def main():
 
     print(f"Status: {status}")
     print(f"Response: {result.get('response', result.get('error'))}")
-
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,5 @@
 config:
-  # Allow HTML in markdown (needed for lang-tabs divs with markdown="1")
+  # Allow HTML in markdown (needed for <details> language blocks with markdown="1")
   MD033: false
   # Allow duplicate headings in different sections
   MD024:

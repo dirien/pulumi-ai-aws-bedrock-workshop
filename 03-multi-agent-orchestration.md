@@ -88,27 +88,25 @@ first (`cd -` returns to wherever you were before; adjust if needed):
 cd -
 ```
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 mkdir 03-multi-agent && cd 03-multi-agent
 pulumi new aws-typescript --name multi-agent --yes
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```bash
 mkdir 03-multi-agent && cd 03-multi-agent
 pulumi new aws-python --name multi-agent --yes
 ```
 
-</div>
-
-</div>
+</details>
 
 Add the ESC environment reference to `Pulumi.dev.yaml`:
 
@@ -121,17 +119,17 @@ EOF
 
 The `pulumi new` template already includes the AWS provider. Pin it to the version this workshop uses:
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```bash
 npm install @pulumi/aws@7.23.0
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 The `pulumi new` template writes a `requirements.txt`. Replace it with the pinned
 dependencies, then install:
@@ -144,9 +142,7 @@ EOF
 pulumi install
 ```
 
-</div>
-
-</div>
+</details>
 
 Set your unique stack name (replace `<id>` with the identifier you picked in Module 0):
 
@@ -174,7 +170,6 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 app = BedrockAgentCoreApp()
 
-
 def create_specialist_agent() -> Agent:
     """Create a specialist agent that handles specific analytical tasks"""
     system_prompt = """You are a specialist analytical agent.
@@ -183,7 +178,6 @@ def create_specialist_agent() -> Agent:
     Focus on accuracy and completeness in your answers."""
 
     return Agent(system_prompt=system_prompt, name="SpecialistAgent")
-
 
 @app.entrypoint
 async def invoke(payload=None):
@@ -204,7 +198,6 @@ async def invoke(payload=None):
 
     except Exception as e:
         return {"status": "error", "agent": "specialist", "error": str(e)}
-
 
 if __name__ == "__main__":
     app.run()
@@ -273,7 +266,6 @@ SPECIALIST_ARN = os.getenv("SPECIALIST_ARN")
 if not SPECIALIST_ARN:
     raise EnvironmentError("SPECIALIST_ARN environment variable is required")
 
-
 def invoke_specialist(query: str) -> str:
     """Helper function to invoke specialist agent using boto3"""
     try:
@@ -332,7 +324,6 @@ def invoke_specialist(query: str) -> str:
         error_details = traceback.format_exc()
         return f"Error invoking specialist agent: {str(e)}\nDetails: {error_details}"
 
-
 @tool
 def call_specialist_agent(query: str) -> Dict[str, Any]:
     """
@@ -347,7 +338,6 @@ def call_specialist_agent(query: str) -> Dict[str, Any]:
     """
     result = invoke_specialist(query)
     return {"status": "success", "content": [{"text": result}]}
-
 
 def create_orchestrator_agent() -> Agent:
     """Create the orchestrator agent with the tool to call specialist agent"""
@@ -367,7 +357,6 @@ def create_orchestrator_agent() -> Agent:
         system_prompt=system_prompt,
         name="OrchestratorAgent",
     )
-
 
 @app.entrypoint
 async def invoke(payload=None):
@@ -392,7 +381,6 @@ async def invoke(payload=None):
 
     except Exception as e:
         return {"status": "error", "agent": "orchestrator", "error": str(e)}
-
 
 if __name__ == "__main__":
     app.run()
@@ -483,10 +471,8 @@ import time
 
 import boto3
 
-
 LOGGER = logging.getLogger()
 LOGGER.setLevel(logging.INFO)
-
 
 def handler(event, _context):
     LOGGER.info("Received event: %s", json.dumps(event))
@@ -538,9 +524,8 @@ below into that file in order.
 
 Start with configuration values and the AWS account/region data sources. The `stackName` config value is used as a prefix for every resource name so multiple stacks don't collide.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 import * as pulumi from "@pulumi/pulumi";
@@ -564,9 +549,10 @@ const currentIdentity = aws.getCallerIdentityOutput({});
 const currentRegion = aws.getRegionOutput({});
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 import hashlib
@@ -591,9 +577,7 @@ current_identity = aws.get_caller_identity_output()
 current_region = aws.get_region_output()
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Dual S3 buckets
 
@@ -604,9 +588,8 @@ current_region = aws.get_region_output()
 
 Each agent gets its own S3 bucket to store its source code archive. Keeping them separate makes it easy to trigger only the affected build when a single agent changes.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorSourceBucket = new aws.s3.Bucket("orchestrator_source", {
@@ -658,9 +641,10 @@ new aws.s3.BucketVersioning("specialist_source", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_source_bucket = aws.s3.Bucket(
@@ -714,17 +698,14 @@ aws.s3.BucketVersioning(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Upload source code to S3
 
 Pulumi zips the local agent directories and uploads them to S3. The `versionId` output of each object is used later as a trigger to detect when the source changes and a rebuild is needed.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorSourceObject = new aws.s3.BucketObjectv2(
@@ -753,9 +734,10 @@ const specialistSourceObject = new aws.s3.BucketObjectv2("specialist_source", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_source_object = aws.s3.BucketObjectv2(
@@ -779,9 +761,7 @@ specialist_source_object = aws.s3.BucketObjectv2(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Dual ECR repositories
 
@@ -792,9 +772,8 @@ specialist_source_object = aws.s3.BucketObjectv2(
 
 Each agent image lives in its own ECR repository. The lifecycle policy keeps storage costs down by expiring old images beyond the last 5.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorEcr = new aws.ecr.Repository("orchestrator", {
@@ -902,9 +881,10 @@ new aws.ecr.LifecyclePolicy("specialist", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_ecr = aws.ecr.Repository(
@@ -1018,9 +998,7 @@ aws.ecr.LifecyclePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Orchestrator execution role
 
@@ -1031,9 +1009,8 @@ aws.ecr.LifecyclePolicy(
 
 The orchestrator execution role is the IAM identity that AgentCore uses when running the orchestrator container. The trust policy restricts assumption to `bedrock-agentcore.amazonaws.com` with source account and ARN conditions to prevent confused deputy attacks. The inline policy grants the permissions the container needs: ECR image pull, CloudWatch logging, X-Ray tracing, Bedrock model invocation, and the workload access token APIs.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorExecution = new aws.iam.Role("orchestrator_execution", {
@@ -1179,9 +1156,10 @@ const orchestratorExecutionRolePolicy = new aws.iam.RolePolicy(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_execution = aws.iam.Role(
@@ -1318,9 +1296,7 @@ orchestrator_execution_role_policy = aws.iam.RolePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### A2A policy (orchestrator invokes specialist)
 
@@ -1331,9 +1307,8 @@ orchestrator_execution_role_policy = aws.iam.RolePolicy(
 
 This is the policy that enables A2A communication. It grants `bedrock-agentcore:InvokeAgentRuntime` to the orchestrator's execution role, scoped to all runtimes in the account. The specialist's role does not get this permission - the flow is one-directional only.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorInvokeSpecialist = new aws.iam.RolePolicy(
@@ -1361,9 +1336,10 @@ const orchestratorInvokeSpecialist = new aws.iam.RolePolicy(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_invoke_specialist = aws.iam.RolePolicy(
@@ -1390,9 +1366,7 @@ orchestrator_invoke_specialist = aws.iam.RolePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Specialist execution role
 
@@ -1403,9 +1377,8 @@ orchestrator_invoke_specialist = aws.iam.RolePolicy(
 
 The specialist execution role follows the same pattern as the orchestrator - same trust policy, same managed policy attachment, same inline permissions - but scoped to the specialist's ECR repository. Critically, it does not include the `InvokeAgentRuntime` permission.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const specialistExecution = new aws.iam.Role("specialist_execution", {
@@ -1551,9 +1524,10 @@ const specialistExecutionRolePolicy = new aws.iam.RolePolicy(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 specialist_execution = aws.iam.Role(
@@ -1690,9 +1664,7 @@ specialist_execution_role_policy = aws.iam.RolePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Shared CodeBuild role and policy
 
@@ -1703,9 +1675,8 @@ specialist_execution_role_policy = aws.iam.RolePolicy(
 
 A single CodeBuild IAM role is shared by both build projects. Its policy grants access to CloudWatch Logs for build output, both ECR repositories for image push/pull, and both S3 buckets for reading source archives.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const codebuildRole = new aws.iam.Role("codebuild", {
@@ -1784,9 +1755,10 @@ const codebuildRolePolicy = new aws.iam.RolePolicy("codebuild", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 codebuild_role = aws.iam.Role(
@@ -1875,9 +1847,7 @@ codebuild_role_policy = aws.iam.RolePolicy(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Build trigger Lambda
 
@@ -1888,9 +1858,8 @@ codebuild_role_policy = aws.iam.RolePolicy(
 
 The Lambda function starts a CodeBuild job and polls until the build finishes before returning. Pulumi waits for each Lambda invocation to complete before moving to the next resource, which is how the sequential build order is enforced. The inline policy grants `StartBuild` and `BatchGetBuilds` for both project ARNs.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorProjectName = `${stackName}-orchestrator-build`;
@@ -1964,9 +1933,10 @@ const buildTriggerFunction = new aws.lambda.Function("build_trigger", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_project_name = f"{stack_name}-orchestrator-build"
@@ -2042,9 +2012,7 @@ build_trigger_function = aws.lambda_.Function(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Dual CodeBuild projects
 
@@ -2055,9 +2023,8 @@ build_trigger_function = aws.lambda_.Function(
 
 Each agent has its own CodeBuild project. The buildspec content is read from disk at deploy time and embedded into the project definition - a SHA-256 fingerprint of the buildspec is used as a change trigger so that updating the buildspec triggers a rebuild.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorBuildspecContent = fs.readFileSync(
@@ -2183,9 +2150,10 @@ const specialistImage = new aws.codebuild.Project("specialist_image", {
 });
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_buildspec_path = os.path.join(
@@ -2297,9 +2265,7 @@ specialist_image = aws.codebuild.Project(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Sequential build triggers
 
@@ -2310,9 +2276,8 @@ specialist_image = aws.codebuild.Project(
 
 The specialist build fires first. The orchestrator build declares `dependsOn: [triggerBuildSpecialist]` (TypeScript) or `depends_on=[trigger_build_specialist]` (Python), which tells Pulumi not to start the orchestrator build until the specialist build Lambda invocation has returned successfully. This is the mechanism that enforces build order.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const triggerBuildSpecialist = new aws.lambda.Invocation(
@@ -2379,9 +2344,10 @@ const triggerBuildOrchestrator = new aws.lambda.Invocation(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 trigger_build_specialist = aws.lambda_.Invocation(
@@ -2444,9 +2410,7 @@ trigger_build_orchestrator = aws.lambda_.Invocation(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Specialist AgentCore Runtime
 
@@ -2457,9 +2421,8 @@ trigger_build_orchestrator = aws.lambda_.Invocation(
 
 The specialist runtime is created first and is independent. Its `SOURCE_VERSION` environment variable is derived from the S3 object version ID so that changing the source code triggers an update to the runtime.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const specialistSourceHash = specialistSourceObject.versionId.apply((v) => v ?? "initial");
@@ -2497,9 +2460,10 @@ const specialistAgent = new aws.bedrock.AgentcoreAgentRuntime(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 specialist_source_hash = specialist_source_object.version_id.apply(
@@ -2539,17 +2503,14 @@ specialist_agent = aws.bedrock.AgentcoreAgentRuntime(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Orchestrator AgentCore Runtime
 
 The orchestrator runtime depends on `specialistAgent` being fully created first. Pulumi resolves `specialistAgent.agentRuntimeArn` automatically once the specialist runtime exists and passes it as the `SPECIALIST_ARN` environment variable, which the orchestrator's container reads at startup.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 const orchestratorRuntimeName = `${stackName.replace(/-/g, "_")}_${orchestratorName}`;
@@ -2587,9 +2548,10 @@ const orchestratorAgent = new aws.bedrock.AgentcoreAgentRuntime(
 );
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 orchestrator_runtime_name = f"{stack_name}_{orchestrator_name}".replace("-", "_")
@@ -2625,17 +2587,14 @@ orchestrator_agent = aws.bedrock.AgentcoreAgentRuntime(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ### Outputs
 
 Export the ARNs and IDs for both runtimes so you can reference them when testing. The `testScriptCommand` output gives you the exact command to run after deploy.
 
-<div class="lang-tabs" markdown="1">
-
-<div class="lang-tab" data-lang="typescript" markdown="1">
+<details markdown="1">
+<summary>TypeScript Example</summary>
 
 ```typescript
 export const orchestratorRuntimeId = orchestratorAgent.agentRuntimeId;
@@ -2658,9 +2617,10 @@ export const specialistSourceBucketName = specialistSourceBucket.id;
 export const testScriptCommand = pulumi.interpolate`python test_multi_agent.py ${orchestratorAgent.agentRuntimeArn}`;
 ```
 
-</div>
+</details>
 
-<div class="lang-tab" data-lang="python" markdown="1">
+<details markdown="1">
+<summary>Python Example</summary>
 
 ```python
 pulumi.export("orchestratorRuntimeId", orchestrator_agent.agent_runtime_id)
@@ -2688,9 +2648,7 @@ pulumi.export(
 )
 ```
 
-</div>
-
-</div>
+</details>
 
 ## Step 7: Deploy
 
@@ -2719,7 +2677,6 @@ import sys
 import boto3
 from botocore.config import Config
 
-
 def invoke(client, arn, prompt):
     print(f"\nPrompt: {prompt}")
     print("Invoking (A2A flows can take a few minutes)...")
@@ -2732,7 +2689,6 @@ def invoke(client, arn, prompt):
     result = json.loads(response["response"].read().decode("utf-8"))
     print(f"Status: {status}")
     print(f"Response: {result.get('response', result.get('error', result))}")
-
 
 def main():
     if len(sys.argv) < 2:
@@ -2768,7 +2724,6 @@ def main():
             specialist_arn,
             "What are the pros and cons of event-driven architecture?",
         )
-
 
 if __name__ == "__main__":
     main()
