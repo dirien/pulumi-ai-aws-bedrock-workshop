@@ -40,6 +40,11 @@ pointed `@pulumi` at GitHub Packages, which required a `GITHUB_TOKEN`; that is g
   runtime component — avoids adding an npm dependency.
 - **Code blocks** use real fenced ```` ```lang ```` blocks (Shiki `min-dark` on the
   Pulumi violet background), never screenshots.
+- **Restart the dev server after inserting or removing a slide.** Slide modules are
+  keyed by slide index, so an insertion shifts every later slide and stale HMR state
+  can silently drop a slide's `<style scoped>` (symptom: a slide renders unstyled,
+  e.g. absolutely-positioned overlays pile up top-left). In-place content edits
+  hot-reload fine; `npm run build` is unaffected.
 
 ## Boundaries
 
