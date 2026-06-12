@@ -34,7 +34,7 @@ flowchart LR
 
     subgraph M3["Module 3 · Multi-agent orchestration"]
         direction TB
-        F5["Agent-to-agent calls"]
+        F5["A2A protocol<br/>(agent card + JSON-RPC)"]
         F6["IAM-scoped<br/>orchestrator + specialist"]
     end
 
@@ -112,6 +112,8 @@ The stretch module is its own Pulumi stack, so skipping it doesn't break anythin
 **AWS credentials expired**: Run `pulumi env open aws-bedrock-workshop/dev` to verify your credentials are configured correctly, then retry.
 
 **Agent invocation returns 500**: Check CloudWatch Logs at `/aws/bedrock-agentcore/runtimes/` for your runtime. Common causes are missing IAM permissions or environment variables.
+
+**Agent returns `{"status": "error"}` mentioning `AccessDeniedException`**: The runtime couldn't call the Bedrock model. Check that the `MODEL_ID` in the agent code matches a model enabled in the workshop account (Bedrock console > Model access), then redeploy and retry.
 
 **CodeBuild fails**: Check the build logs in the AWS Console under CodeBuild > Build projects. The most common issue is ECR permission errors during docker push.
 

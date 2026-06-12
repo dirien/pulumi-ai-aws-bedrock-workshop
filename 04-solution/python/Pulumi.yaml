@@ -1,6 +1,3 @@
 name: end-to-end-weather-agent
-runtime:
-  name: python
-  options:
-    toolchain: uv
+runtime: python
 description: End-to-End Weather Agent - Pulumi Python

@@ -7,9 +7,9 @@
 ## What you'll learn
 
 - Why you'd split work across multiple agents instead of building one monolithic agent
-- How Agent-to-Agent (A2A) communication works on AgentCore
+- What the A2A (Agent-to-Agent) protocol is and how AgentCore Runtime hosts it
+- How an agent card lets one agent discover another, regardless of framework
 - How IAM permissions gate which agents can invoke which
-- How to handle streaming responses between agents
 - How sequential build dependencies work in Pulumi
 
 ## Glossary
@@ -18,11 +18,13 @@ New to a term? See the [Glossary](glossary.md) for every acronym used in this wo
 
 ## Key concepts
 
-### Agent-to-Agent (A2A) communication on AgentCore
+### The A2A protocol
 
 A single agent with a dozen tools and a long system prompt can work, but it gets unwieldy fast. The LLM has to decide between too many options on every turn, and the system prompt becomes a wall of instructions competing for attention.
 
-The [AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agents-tools-runtime.html) supports native Agent-to-Agent communication. One agent can invoke another agent runtime directly over the AWS API using `bedrock-agentcore:InvokeAgentRuntime`. AgentCore manages the routing and lifecycle - you just need the target agent's ARN and the right IAM permissions.
+[A2A (Agent2Agent)](https://a2a-protocol.org/) is the open protocol for the alternative: agents that call other agents. An A2A server is an HTTP service that speaks JSON-RPC 2.0 and publishes an **agent card** at `/.well-known/agent-card.json` - a machine-readable description of who it is and what it can do. Any A2A client can fetch the card and start sending messages, regardless of which framework either side is built with: a Strands agent can call a LangGraph agent can call something a partner company runs.
+
+[AgentCore Runtime hosts A2A servers natively](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-a2a.html): set the runtime's protocol to `A2A` and your container serves JSON-RPC on port 9000 instead of the HTTP contract from Module 2. Calls still travel through the same AgentCore data plane you used before - the platform passes JSON-RPC payloads through to your container untouched - so the same IAM model applies. You need the target agent's ARN and the right permissions; AgentCore handles routing and lifecycle.
 
 ### Orchestrator/specialist pattern
 
@@ -35,9 +37,9 @@ In this module, you'll build two agents:
 
 ### IAM-based access control for agent invocation
 
-The IAM permission that makes A2A work is `bedrock-agentcore:InvokeAgentRuntime`. The orchestrator's execution role gets this permission; the specialist's role does not. This is intentional: the specialist cannot call back to the orchestrator, which prevents accidental cycles and keeps the dependency graph clear.
+Two IAM permissions make A2A work on AgentCore: `bedrock-agentcore:GetAgentCard` (fetch the agent card during discovery) and `bedrock-agentcore:InvokeAgentRuntime` (carry the JSON-RPC messages). The orchestrator's execution role gets both; the specialist's role gets neither. This is intentional: the specialist cannot call back to the orchestrator, which prevents accidental cycles and keeps the dependency graph clear.
 
-When the orchestrator calls `InvokeAgentRuntime`, AgentCore verifies the caller's role has this permission before forwarding the payload to the specialist container.
+Every call the orchestrator makes - card fetch or message - goes through the AgentCore data plane, which verifies the caller's IAM permissions before forwarding anything to the specialist container.
 
 ### How the request flows
 
@@ -50,12 +52,16 @@ sequenceDiagram
 
     U->>O: "Analyze the trade-offs of microservices vs monoliths"
     O->>O: LLM decides: complex query, delegate
-    O->>A: InvokeAgentRuntime(specialist_arn, payload)
+    O->>A: GET agent card (discovery)
     A->>A: Verify IAM permission
-    A->>S: Forward payload
+    A->>S: Forward card request
+    S-->>O: Agent card (name, skills, capabilities)
+    O->>A: JSON-RPC message/send
+    A->>A: Verify IAM permission
+    A->>S: Forward JSON-RPC payload
     S->>S: LLM processes query
-    S-->>A: Streaming response
-    A-->>O: Streaming response
+    S-->>A: JSON-RPC task with the answer
+    A-->>O: JSON-RPC task with the answer
     O-->>U: Returns specialist's answer
 ```
 
@@ -158,7 +164,7 @@ pulumi config set stackName agentcore-multi-<id>
 
 ## Step 2: Write the specialist agent
 
-The specialist is a plain Strands agent with no special tools. Its only job is to give detailed answers. The response includes `"agent": "specialist"` so you can tell where the answer came from when testing.
+The specialist is a plain Strands agent with no special tools. Its only job is to give detailed answers. What's new is how it's served: instead of `BedrockAgentCoreApp` and the `/invocations` contract from Modules 1-2, it runs as an A2A server. `StrandsA2AExecutor` adapts the agent to the protocol, and `serve_a2a` (from the `bedrock-agentcore` SDK) handles the plumbing: JSON-RPC routing on port 9000, the agent card, and the `/ping` health check AgentCore polls.
 
 Create a folder for the specialist's source:
 
@@ -169,10 +175,21 @@ mkdir -p agent-specialist-code
 Create `agent.py` inside `agent-specialist-code` and copy the content in:
 
 ```python
-from strands import Agent
-from bedrock_agentcore.runtime import BedrockAgentCoreApp
+"""Specialist agent, served over the open A2A protocol.
 
-app = BedrockAgentCoreApp()
+Instead of the HTTP contract from Module 2 (BedrockAgentCoreApp on port 8080),
+this agent is an A2A server: JSON-RPC 2.0 on port 9000, an agent card at
+/.well-known/agent-card.json, and a /ping health check. Any A2A client can
+discover and call it - the orchestrator is just one of them.
+"""
+
+from bedrock_agentcore.runtime.a2a import serve_a2a
+from strands import Agent
+from strands.multiagent.a2a import StrandsA2AExecutor
+
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def create_specialist_agent() -> Agent:
@@ -182,41 +199,30 @@ def create_specialist_agent() -> Agent:
     When asked questions, provide thorough, well-reasoned responses with specific details.
     Focus on accuracy and completeness in your answers."""
 
-    return Agent(system_prompt=system_prompt, name="SpecialistAgent")
-
-
-@app.entrypoint
-async def invoke(payload=None):
-    """Main entrypoint for specialist agent"""
-    try:
-        # Get the query from payload
-        query = payload.get("prompt", "Hello") if payload else "Hello"
-
-        # Create and use the specialist agent
-        agent = create_specialist_agent()
-        response = agent(query)
-
-        return {
-            "status": "success",
-            "agent": "specialist",
-            "response": response.message["content"][0]["text"],
-        }
-
-    except Exception as e:
-        return {"status": "error", "agent": "specialist", "error": str(e)}
+    return Agent(
+        model=MODEL_ID,
+        system_prompt=system_prompt,
+        name="SpecialistAgent",
+        description="An analytical specialist that gives thorough, detailed answers.",
+    )
 
 
 if __name__ == "__main__":
-    app.run()
+    # serve_a2a handles the protocol plumbing: JSON-RPC routing, the agent
+    # card, and the /ping health check AgentCore polls. Bind to 0.0.0.0 so
+    # the runtime can reach the server inside the container.
+    serve_a2a(StrandsA2AExecutor(create_specialist_agent()), host="0.0.0.0")
 ```
 
-Create `requirements.txt` inside `agent-specialist-code`:
+Notice there's no entrypoint function and no payload parsing - the protocol layer does that now. The agent's `name` and `description` aren't cosmetic either: they become the agent card that clients discover.
+
+Create `requirements.txt` inside `agent-specialist-code`. The `[a2a]` extras pull in the protocol server pieces (the `a2a-sdk`, uvicorn, starlette):
 
 ```text
-strands-agents
+strands-agents[a2a]~=1.42.0
 boto3>=1.40.0
 botocore>=1.40.0
-bedrock-agentcore
+bedrock-agentcore[a2a]~=1.14.0
 ```
 
 Create `Dockerfile` inside `agent-specialist-code`:
@@ -229,11 +235,13 @@ COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 RUN pip install aws-opentelemetry-distro>=0.10.1
 
+# Create non-root user
 RUN useradd -m -u 1000 bedrock_agentcore
 USER bedrock_agentcore
 
+# The orchestrator serves HTTP on 8080; the specialist serves A2A on 9000.
 EXPOSE 8080
-EXPOSE 8000
+EXPOSE 9000
 
 COPY . .
 
@@ -242,9 +250,7 @@ CMD ["opentelemetry-instrument", "python", "-m", "agent"]
 
 ## Step 3: Write the orchestrator agent
 
-The orchestrator reads `SPECIALIST_ARN` from an environment variable set by Pulumi at deploy time. The `@tool` decorator on `call_specialist_agent` makes it available to the Strands agent as a callable tool. When the LLM decides a question is complex, it calls this tool, which triggers the A2A invocation.
-
-The response handling has three branches because AgentCore can return different content types: event streams, JSON, or raw bytes. In practice, you'll usually get the streaming format.
+The orchestrator itself still speaks the HTTP contract from Module 2 - you invoke it with a `{"prompt": ...}` payload like before. What changes is how it reaches the specialist. It reads `SPECIALIST_ARN` from an environment variable set by Pulumi at deploy time, turns it into the specialist's A2A endpoint URL, and hands that to `A2AClientToolProvider`. The provider fetches the specialist's agent card and exposes A2A tools to the LLM (`a2a_send_message`, `a2a_discover_agent`, ...). When the LLM decides a question is complex, it calls `a2a_send_message` - and the client library handles the JSON-RPC transport, so the three-branch response parsing you'd write by hand with boto3 disappears.
 
 Create a folder for the orchestrator's source. If you stepped into
 `agent-specialist-code` in your terminal, go back to the module root first so this
@@ -258,102 +264,47 @@ mkdir -p agent-orchestrator-code
 Create `agent.py` inside `agent-orchestrator-code` and copy the content in:
 
 ```python
-from strands import Agent, tool
-from typing import Dict, Any
-import boto3
-from botocore.config import Config
-import json
+"""Orchestrator agent: HTTP entrypoint in front, A2A client toward the specialist.
+
+The orchestrator itself still speaks the Module 2 HTTP contract (port 8080,
+/invocations), so you invoke it exactly like before. What changed is how it
+reaches the specialist: instead of a hand-rolled boto3 call, it uses an A2A
+client that discovers the specialist through its agent card and talks
+JSON-RPC - signed with the same IAM credentials as any AWS API call.
+"""
+
 import os
+
+import boto3
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore.runtime.a2a import build_runtime_url
+from sigv4 import SigV4HTTPXAuth
+from strands import Agent
+from strands_tools.a2a_client import A2AClientToolProvider
 
 app = BedrockAgentCoreApp()
 
-# Environment variable for Specialist Agent ARN (required - set by Pulumi)
-SPECIALIST_ARN = os.getenv("SPECIALIST_ARN")
-if not SPECIALIST_ARN:
-    raise EnvironmentError("SPECIALIST_ARN environment variable is required")
+# The specialist's A2A endpoint rides the AgentCore data plane: its URL is the
+# InvokeAgentRuntime endpoint with the runtime ARN encoded into the path.
+# SPECIALIST_A2A_URL overrides it for local runs (e.g. http://localhost:9000).
+SPECIALIST_URL = os.getenv("SPECIALIST_A2A_URL")
+if not SPECIALIST_URL:
+    specialist_arn = os.getenv("SPECIALIST_ARN")
+    if not specialist_arn:
+        raise EnvironmentError("SPECIALIST_ARN environment variable is required")
+    SPECIALIST_URL = build_runtime_url(specialist_arn)
 
-
-def invoke_specialist(query: str) -> str:
-    """Helper function to invoke specialist agent using boto3"""
-    try:
-        # Get region from environment (set by AgentCore runtime)
-        region = os.getenv("AWS_REGION")
-        if not region:
-            raise EnvironmentError("AWS_REGION environment variable is required")
-        # Long read_timeout: the specialist may take minutes on complex
-        # queries. boto3's default 60s would surface as a hang on the test
-        # client because the orchestrator's tool call would keep retrying.
-        agentcore_client = boto3.client(
-            "bedrock-agentcore",
-            region_name=region,
-            config=Config(
-                read_timeout=900,
-                connect_timeout=30,
-                retries={"max_attempts": 0},
-            ),
-        )
-
-        # Invoke specialist agent runtime (using AWS sample format)
-        response = agentcore_client.invoke_agent_runtime(
-            agentRuntimeArn=SPECIALIST_ARN,
-            qualifier="DEFAULT",
-            payload=json.dumps({"prompt": query}),
-        )
-
-        # Handle streaming response (text/event-stream)
-        if "text/event-stream" in response.get("contentType", ""):
-            result = ""
-            for line in response["response"].iter_lines(chunk_size=10):
-                if line:
-                    line = line.decode("utf-8")
-                    # Remove 'data: ' prefix if present
-                    if line.startswith("data: "):
-                        line = line[6:]
-                    result += line
-            return result
-
-        # Handle JSON response
-        elif response.get("contentType") == "application/json":
-            content = []
-            for chunk in response.get("response", []):
-                content.append(chunk.decode("utf-8"))
-            response_data = json.loads("".join(content))
-            return json.dumps(response_data)
-
-        # Handle other response types
-        else:
-            response_body = response["response"].read()
-            return response_body.decode("utf-8")
-
-    except Exception as e:
-        import traceback
-
-        error_details = traceback.format_exc()
-        return f"Error invoking specialist agent: {str(e)}\nDetails: {error_details}"
-
-
-@tool
-def call_specialist_agent(query: str) -> Dict[str, Any]:
-    """
-    Call the specialist agent for detailed analysis or complex tasks.
-    Use this tool when you need expert analysis or detailed information.
-
-    Args:
-        query: The question or task to send to the specialist agent
-
-    Returns:
-        The specialist agent's response
-    """
-    result = invoke_specialist(query)
-    return {"status": "success", "content": [{"text": result}]}
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def create_orchestrator_agent() -> Agent:
-    """Create the orchestrator agent with the tool to call specialist agent"""
+    """Create the orchestrator agent with A2A client tools for the specialist."""
     system_prompt = """You are an orchestrator agent.
     You can handle simple queries directly, but for complex analytical tasks,
-    you should delegate to the specialist agent using the call_specialist_agent tool.
+    you should delegate to the specialist agent: use the a2a_send_message tool
+    to send it the question (it is already discovered for you).
 
     Use the specialist agent when:
     - The query requires detailed analysis
@@ -362,8 +313,25 @@ def create_orchestrator_agent() -> Agent:
 
     Handle simple queries (greetings, basic questions) yourself."""
 
+    # Sign every request to the specialist with SigV4 - same IAM identity,
+    # same InvokeAgentRuntime permission as a boto3 call, new protocol.
+    session = boto3.Session()
+    auth = SigV4HTTPXAuth(
+        credentials=session.get_credentials(),
+        service="bedrock-agentcore",
+        region=os.getenv("AWS_REGION") or session.region_name,
+    )
+
+    # The provider fetches the specialist's agent card and exposes A2A tools
+    # (a2a_send_message, a2a_discover_agent, ...) to the orchestrator.
+    specialist = A2AClientToolProvider(
+        known_agent_urls=[SPECIALIST_URL],
+        httpx_client_args={"auth": auth},
+    )
+
     return Agent(
-        tools=[call_specialist_agent],
+        model=MODEL_ID,
+        tools=specialist.tools,
         system_prompt=system_prompt,
         name="OrchestratorAgent",
     )
@@ -398,7 +366,72 @@ if __name__ == "__main__":
     app.run()
 ```
 
-The orchestrator uses the same `requirements.txt` and `Dockerfile` as the specialist - copy them into `agent-orchestrator-code/`.
+One piece is missing: the A2A client speaks plain HTTP, but AgentCore's data plane expects requests signed with AWS Signature Version 4. No SDK ships that glue yet, so the orchestrator carries a small `httpx` auth adapter based on the official AWS pattern in the [strands-agents samples](https://github.com/strands-agents/samples). Create `sigv4.py` next to `agent.py` inside `agent-orchestrator-code` and copy it as is:
+
+```python
+"""SigV4 signing for httpx, so A2A clients can call AgentCore-hosted agents.
+
+AgentCore's data plane authenticates with AWS Signature Version 4, but
+off-the-shelf A2A clients speak plain HTTP. This httpx.Auth implementation
+signs each outgoing request with the caller's IAM credentials - the same
+identity and permissions boto3 would use.
+
+No SDK ships this glue yet; it follows the official AWS pattern from
+github.com/strands-agents/samples (01-a2a-orchestration/utils/sigv4_auth.py).
+Copy it as is.
+"""
+
+from typing import Generator
+
+import httpx
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+from botocore.credentials import Credentials
+
+
+class SigV4HTTPXAuth(httpx.Auth):
+    """Sign httpx requests with AWS SigV4 for Amazon Bedrock AgentCore."""
+
+    def __init__(self, credentials: Credentials, service: str, region: str):
+        self.credentials = credentials
+        self.service = service
+        self.region = region
+
+    def auth_flow(
+        self, request: httpx.Request
+    ) -> Generator[httpx.Request, httpx.Response, None]:
+        headers = dict(request.headers)
+
+        # AgentCore excludes the connection header from its server-side
+        # signature; signing it client-side causes SignatureDoesNotMatch.
+        headers.pop("connection", None)
+
+        aws_request = AWSRequest(
+            method=request.method,
+            url=str(request.url),
+            data=request.content,
+            headers=headers,
+        )
+
+        # Freeze credentials per request so IAM role auto-refresh keeps working.
+        frozen_credentials = self.credentials.get_frozen_credentials()
+        SigV4Auth(frozen_credentials, self.service, self.region).add_auth(aws_request)
+
+        request.headers.update(dict(aws_request.headers))
+        yield request
+```
+
+Create `requirements.txt` inside `agent-orchestrator-code`. The orchestrator consumes A2A rather than serving it, so its extra is `[a2a-client]` on the tools package:
+
+```text
+strands-agents~=1.42.0
+strands-agents-tools[a2a-client]~=0.8.0
+boto3>=1.40.0
+botocore>=1.40.0
+bedrock-agentcore[a2a]~=1.14.0
+```
+
+The orchestrator uses the same `Dockerfile` as the specialist - copy it into `agent-orchestrator-code/`.
 
 ## Step 4: Create the buildspecs
 
@@ -1031,6 +1064,8 @@ aws.ecr.LifecyclePolicy(
 
 The orchestrator execution role is the IAM identity that AgentCore uses when running the orchestrator container. The trust policy restricts assumption to `bedrock-agentcore.amazonaws.com` with source account and ARN conditions to prevent confused deputy attacks. The inline policy grants the permissions the container needs: ECR image pull, CloudWatch logging, X-Ray tracing, Bedrock model invocation, and the workload access token APIs.
 
+One thing these roles deliberately do *not* get: the broad `BedrockAgentCoreFullAccess` managed policy that Module 2 attached as a convenience. That policy allows `bedrock-agentcore:*`, which includes `InvokeAgentRuntime` - attach it to both agents and each one can invoke the other, and the one-way boundary this module is built around is gone. A role's effective permissions are the union of everything attached to it, so every grant here stays explicit.
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
@@ -1069,14 +1104,6 @@ const orchestratorExecution = new aws.iam.Role("orchestrator_execution", {
     Module: "IAM",
   },
 });
-
-const orchestratorExecutionManaged = new aws.iam.RolePolicyAttachment(
-  "orchestrator_execution_managed",
-  {
-    role: orchestratorExecution.name,
-    policyArn: "arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess",
-  },
-);
 
 const orchestratorExecutionRolePolicy = new aws.iam.RolePolicy(
   "orchestrator_execution",
@@ -1220,12 +1247,6 @@ orchestrator_execution = aws.iam.Role(
     },
 )
 
-orchestrator_execution_managed = aws.iam.RolePolicyAttachment(
-    "orchestrator_execution_managed",
-    role=orchestrator_execution.name,
-    policy_arn="arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess",
-)
-
 orchestrator_execution_role_policy = aws.iam.RolePolicy(
     "orchestrator_execution",
     name="OrchestratorCoreExecutionPolicy",
@@ -1329,7 +1350,7 @@ orchestrator_execution_role_policy = aws.iam.RolePolicy(
 <p><a href="https://www.pulumi.com/registry/packages/aws/api-docs/iam/rolepolicy/">aws.iam.RolePolicy</a></p>
 </details>
 
-This is the policy that enables A2A communication. It grants `bedrock-agentcore:InvokeAgentRuntime` to the orchestrator's execution role, scoped to all runtimes in the account. The specialist's role does not get this permission - the flow is one-directional only.
+This is the policy that enables A2A communication. It grants the orchestrator's execution role two actions, scoped to all runtimes in the account: `bedrock-agentcore:GetAgentCard` so the A2A client can fetch the specialist's agent card during discovery, and `bedrock-agentcore:InvokeAgentRuntime` to carry the JSON-RPC messages. The specialist's role gets neither - the flow is one-directional only.
 
 <div class="lang-tabs" markdown="1">
 
@@ -1347,7 +1368,12 @@ const orchestratorInvokeSpecialist = new aws.iam.RolePolicy(
         {
           Sid: "InvokeSpecialistRuntime",
           Effect: "Allow",
-          Action: ["bedrock-agentcore:InvokeAgentRuntime"],
+          // InvokeAgentRuntime carries the A2A messages; GetAgentCard
+          // lets the A2A client discover the specialist's card first.
+          Action: [
+            "bedrock-agentcore:InvokeAgentRuntime",
+            "bedrock-agentcore:GetAgentCard",
+          ],
           Resource: pulumi
             .all([currentRegion, currentIdentity])
             .apply(
@@ -1377,7 +1403,12 @@ orchestrator_invoke_specialist = aws.iam.RolePolicy(
                 {
                     "Sid": "InvokeSpecialistRuntime",
                     "Effect": "Allow",
-                    "Action": ["bedrock-agentcore:InvokeAgentRuntime"],
+                    # InvokeAgentRuntime carries the A2A messages; GetAgentCard
+                    # lets the A2A client discover the specialist's card first.
+                    "Action": [
+                        "bedrock-agentcore:InvokeAgentRuntime",
+                        "bedrock-agentcore:GetAgentCard",
+                    ],
                     "Resource": pulumi.Output.all(
                         current_region, current_identity
                     ).apply(
@@ -1401,7 +1432,7 @@ orchestrator_invoke_specialist = aws.iam.RolePolicy(
 <p><a href="https://www.pulumi.com/registry/packages/aws/api-docs/iam/role/">aws.iam.Role</a> &middot; <a href="https://www.pulumi.com/registry/packages/aws/api-docs/iam/rolepolicyattachment/">aws.iam.RolePolicyAttachment</a> &middot; <a href="https://www.pulumi.com/registry/packages/aws/api-docs/iam/rolepolicy/">aws.iam.RolePolicy</a></p>
 </details>
 
-The specialist execution role follows the same pattern as the orchestrator - same trust policy, same managed policy attachment, same inline permissions - but scoped to the specialist's ECR repository. Critically, it does not include the `InvokeAgentRuntime` permission.
+The specialist execution role follows the same pattern as the orchestrator - same trust policy, same inline permissions - but scoped to the specialist's ECR repository. Critically, no policy on this role grants `InvokeAgentRuntime`.
 
 <div class="lang-tabs" markdown="1">
 
@@ -1441,14 +1472,6 @@ const specialistExecution = new aws.iam.Role("specialist_execution", {
     Module: "IAM",
   },
 });
-
-const specialistExecutionManaged = new aws.iam.RolePolicyAttachment(
-  "specialist_execution_managed",
-  {
-    role: specialistExecution.name,
-    policyArn: "arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess",
-  },
-);
 
 const specialistExecutionRolePolicy = new aws.iam.RolePolicy(
   "specialist_execution",
@@ -1592,11 +1615,6 @@ specialist_execution = aws.iam.Role(
     },
 )
 
-specialist_execution_managed = aws.iam.RolePolicyAttachment(
-    "specialist_execution_managed",
-    role=specialist_execution.name,
-    policy_arn="arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess",
-)
 
 specialist_execution_role_policy = aws.iam.RolePolicy(
     "specialist_execution",
@@ -2455,7 +2473,7 @@ trigger_build_orchestrator = aws.lambda_.Invocation(
 <p><a href="https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcoreagentruntime/">aws.bedrock.AgentcoreAgentRuntime</a></p>
 </details>
 
-The specialist runtime is created first and is independent. Its `SOURCE_VERSION` environment variable is derived from the S3 object version ID so that changing the source code triggers an update to the runtime.
+The specialist runtime is created first and is independent. Two things to note: `protocolConfiguration` tells AgentCore this runtime speaks A2A (so the platform sends traffic to port 9000 and passes JSON-RPC through untouched), and the `SOURCE_VERSION` environment variable is derived from the S3 object version ID so that changing the source code triggers an update to the runtime.
 
 <div class="lang-tabs" markdown="1">
 
@@ -2478,6 +2496,11 @@ const specialistAgent = new aws.bedrock.AgentcoreAgentRuntime(
         containerUri: pulumi.interpolate`${specialistEcr.repositoryUrl}:${imageTag}`,
       },
     },
+    // The specialist speaks the A2A protocol (JSON-RPC on port 9000)
+    // instead of the default HTTP contract on port 8080.
+    protocolConfiguration: {
+      serverProtocol: "A2A",
+    },
     networkConfiguration: {
       networkMode: networkMode,
     },
@@ -2491,7 +2514,6 @@ const specialistAgent = new aws.bedrock.AgentcoreAgentRuntime(
     dependsOn: [
       triggerBuildSpecialist,
       specialistExecutionRolePolicy,
-      specialistExecutionManaged,
     ],
   },
 );
@@ -2523,6 +2545,9 @@ specialist_agent = aws.bedrock.AgentcoreAgentRuntime(
             ),
         }
     },
+    # The specialist speaks the A2A protocol (JSON-RPC on port 9000)
+    # instead of the default HTTP contract on port 8080.
+    protocol_configuration={"server_protocol": "A2A"},
     network_configuration={"network_mode": network_mode},
     environment_variables={
         "AWS_REGION": aws_region,
@@ -2533,7 +2558,6 @@ specialist_agent = aws.bedrock.AgentcoreAgentRuntime(
         depends_on=[
             trigger_build_specialist,
             specialist_execution_role_policy,
-            specialist_execution_managed,
         ]
     ),
 )
@@ -2581,7 +2605,6 @@ const orchestratorAgent = new aws.bedrock.AgentcoreAgentRuntime(
       triggerBuildOrchestrator,
       orchestratorExecutionRolePolicy,
       orchestratorInvokeSpecialist,
-      orchestratorExecutionManaged,
     ],
   },
 );
@@ -2619,7 +2642,6 @@ orchestrator_agent = aws.bedrock.AgentcoreAgentRuntime(
             trigger_build_orchestrator,
             orchestrator_execution_role_policy,
             orchestrator_invoke_specialist,
-            orchestrator_execution_managed,
         ]
     ),
 )
@@ -2702,27 +2724,33 @@ This takes a while - two Docker images are built sequentially in CodeBuild. Expe
 
 ## Step 8: Test
 
-This script sends a simple prompt and a delegation prompt to the orchestrator, and
-(if you pass its ARN) hits the specialist directly too. Create `test_multi_agent.py`
-in the module root and copy the content in:
+This script first fetches the specialist's agent card (the discovery step every A2A
+client performs), then sends a simple prompt and a delegation prompt to the
+orchestrator, and (if you pass its ARN) hits the specialist directly too. Create
+`test_multi_agent.py` in the module root and copy the content in:
 
 ```python
 #!/usr/bin/env python3
 """Invoke the orchestrator (and optionally the specialist) and print the replies.
+
+The orchestrator speaks the plain HTTP contract from Module 2, so it takes a
+{"prompt": ...} payload. The specialist speaks the A2A protocol, so calling it
+directly means sending a JSON-RPC 2.0 envelope through the same data plane.
 
 Usage:
     python test_multi_agent.py <orchestrator_arn> [specialist_arn]
 """
 import json
 import sys
+import uuid
 
 import boto3
 from botocore.config import Config
 
 
-def invoke(client, arn, prompt):
+def invoke_orchestrator(client, arn, prompt):
     print(f"\nPrompt: {prompt}")
-    print("Invoking (A2A flows can take a few minutes)...")
+    print("Invoking (delegated queries can take a few minutes)...")
     response = client.invoke_agent_runtime(
         agentRuntimeArn=arn,
         qualifier="DEFAULT",
@@ -2734,6 +2762,49 @@ def invoke(client, arn, prompt):
     print(f"Response: {result.get('response', result.get('error', result))}")
 
 
+def show_agent_card(client, arn):
+    """Fetch the specialist's agent card - the same discovery step the
+    orchestrator's A2A client performs before it sends any message."""
+    response = client.get_agent_card(agentRuntimeArn=arn, qualifier="DEFAULT")
+    card = response["agentCard"]
+    capabilities = card.get("capabilities", {})
+    print(f"\nDiscovered agent card: {card.get('name')} - {card.get('description')}")
+    print(
+        f"(protocol: {card.get('preferredTransport', 'JSONRPC')}, "
+        f"streaming: {capabilities.get('streaming')})"
+    )
+
+
+def invoke_specialist_a2a(client, arn, prompt):
+    """Call the A2A specialist directly: wrap the prompt in a JSON-RPC envelope."""
+    print(f"\nPrompt (direct to specialist, A2A): {prompt}")
+    envelope = {
+        "jsonrpc": "2.0",
+        "id": str(uuid.uuid4()),
+        "method": "message/send",
+        "params": {
+            "message": {
+                "kind": "message",
+                "role": "user",
+                "messageId": str(uuid.uuid4()),
+                "parts": [{"kind": "text", "text": prompt}],
+            }
+        },
+    }
+    response = client.invoke_agent_runtime(
+        agentRuntimeArn=arn,
+        qualifier="DEFAULT",
+        payload=json.dumps(envelope),
+    )
+    result = json.loads(response["response"].read().decode("utf-8"))
+    task = result.get("result", {})
+    print(f"Task state: {task.get('status', {}).get('state', 'unknown')}")
+    for artifact in task.get("artifacts", []):
+        for part in artifact.get("parts", []):
+            if part.get("kind") == "text":
+                print(f"Response: {part['text']}")
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python test_multi_agent.py <orchestrator_arn> [specialist_arn]")
@@ -2743,19 +2814,24 @@ def main():
     specialist_arn = sys.argv[2] if len(sys.argv) > 2 else None
     region = orchestrator_arn.split(":")[3]
 
-    # A2A calls in the orchestrator can run for minutes; bump the read timeout
-    # well past boto3's 60s default so the test doesn't give up early.
+    # Delegated calls can run for minutes; bump the read timeout well past
+    # boto3's 60s default so the test doesn't give up early.
     client = boto3.client(
         "bedrock-agentcore",
         region_name=region,
         config=Config(read_timeout=900, connect_timeout=30, retries={"max_attempts": 0}),
     )
 
-    # Simple query: the orchestrator answers directly.
-    invoke(client, orchestrator_arn, "Hello! Can you introduce yourself?")
+    # The specialist publishes an agent card - fetch it the way any A2A
+    # client (including the orchestrator) discovers an agent.
+    if specialist_arn:
+        show_agent_card(client, specialist_arn)
 
-    # Complex query: the orchestrator delegates to the specialist (A2A).
-    invoke(
+    # Simple query: the orchestrator answers directly.
+    invoke_orchestrator(client, orchestrator_arn, "Hello! Can you introduce yourself?")
+
+    # Complex query: the orchestrator delegates to the specialist over A2A.
+    invoke_orchestrator(
         client,
         orchestrator_arn,
         "Ask the specialist: what is serverless computing and when should I use it?",
@@ -2763,7 +2839,7 @@ def main():
 
     # Optionally hit the specialist directly to confirm it works on its own.
     if specialist_arn:
-        invoke(
+        invoke_specialist_a2a(
             client,
             specialist_arn,
             "What are the pros and cons of event-driven architecture?",
@@ -2789,9 +2865,15 @@ export SPEC_ARN=$(pulumi stack output specialistRuntimeArn)
 pulumi env run aws-bedrock-workshop/dev -- python test_multi_agent.py $ORCH_ARN $SPEC_ARN
 ```
 
-The first prompt is a greeting the orchestrator answers itself. The second asks it
-to delegate, so the orchestrator calls the specialist over A2A and wraps the reply.
-The third invokes the specialist directly to confirm it works on its own.
+The card comes first: `get_agent_card` is the same data-plane call the orchestrator's
+A2A client makes during discovery, so you see exactly what it sees: the name,
+description, and capabilities your specialist code declared. Then the first prompt is
+a greeting the orchestrator answers itself. The second asks it to delegate, so the
+orchestrator calls the specialist over A2A and wraps the reply. The third talks to
+the specialist directly - and because the specialist is an A2A server, the script
+wraps the prompt in a JSON-RPC `message/send` envelope and reads the answer out of
+the returned task. That envelope is exactly what the orchestrator's A2A client builds
+for you; here you see the protocol with the covers off.
 
 ## Try it yourself
 
@@ -2799,18 +2881,39 @@ The third invokes the specialist directly to confirm it works on its own.
 
 **Change the specialist's personality.** Edit `agent-specialist-code/agent.py` and change the system prompt to be more opinionated, shorter, or domain-specific (e.g., "You are a cybersecurity expert"). Redeploy and send complex queries through the orchestrator. The specialist's new tone should come through in the orchestrator's final response.
 
-**Test the one-way IAM boundary.** The specialist cannot call the orchestrator because it lacks the `InvokeAgentRuntime` IAM permission. Invoke the specialist directly as shown above and confirm it responds independently. Then look at the specialist's execution role in the IAM console and verify the `OrchestratorInvokeSpecialistPolicy` is absent.
+**Test the one-way IAM boundary.** The specialist cannot call the orchestrator because no policy on its execution role grants `bedrock-agentcore:InvokeAgentRuntime`. Invoke the specialist directly as shown above and confirm it responds independently. Then verify the boundary the way IAM actually evaluates it - against the role's *effective* permissions (the union of all inline and managed policies), not just one policy you happen to look at. Can the specialist's role invoke the orchestrator?
+
+```bash
+pulumi env run aws-bedrock-workshop/dev -- aws iam simulate-principal-policy \
+  --policy-source-arn $(pulumi stack output specialistExecutionRoleArn) \
+  --action-names bedrock-agentcore:InvokeAgentRuntime \
+  --resource-arns $(pulumi stack output orchestratorRuntimeArn) \
+  --query 'EvaluationResults[0].EvalDecision' --output text
+```
+
+Expect `implicitDeny`. Now ask the reverse - can the orchestrator's role invoke the specialist?
+
+```bash
+pulumi env run aws-bedrock-workshop/dev -- aws iam simulate-principal-policy \
+  --policy-source-arn $(pulumi stack output orchestratorExecutionRoleArn) \
+  --action-names bedrock-agentcore:InvokeAgentRuntime \
+  --resource-arns $(pulumi stack output specialistRuntimeArn) \
+  --query 'EvaluationResults[0].EvalDecision' --output text
+```
+
+This one returns `allowed` - the one-way boundary, verified end to end.
 
 **Add a second specialist.** Extend the infrastructure to create a third agent - for example, a math specialist or a code review specialist. Update the orchestrator's system prompt to route queries to the appropriate specialist. You'll need a third S3 bucket, ECR repository, execution role, and CodeBuild project, plus an update to the A2A policy to allow invoking the new runtime.
 
 ## What you learned
 
 - Splitting agents by specialty keeps system prompts focused and LLM decisions cleaner
-- A2A communication uses `bedrock-agentcore:InvokeAgentRuntime` with standard IAM permissions
-- The orchestrator discovers the specialist through an environment variable containing its ARN, which Pulumi resolves automatically from the specialist runtime resource
+- A2A is an open protocol (JSON-RPC over HTTP plus an agent card for discovery), and AgentCore hosts it natively; one `protocolConfiguration` field switches a runtime from HTTP to A2A while the whole build pipeline stays the same
+- On AgentCore, A2A traffic rides the regular data plane, gated by two IAM actions: `GetAgentCard` for discovery and `InvokeAgentRuntime` for messages
+- The orchestrator finds the specialist through an environment variable containing its ARN, which Pulumi resolves automatically from the specialist runtime resource and the A2A client turns into the endpoint URL
 - Pulumi's `dependsOn` enforces the build and deploy order: specialist first, then orchestrator
 - IAM permissions are one-directional - only the orchestrator's execution role holds the `InvokeAgentRuntime` permission
-- AgentCore handles streaming responses between agents; the orchestrator's response handler must account for multiple content-type formats
+- Effective permissions are the union of every attached policy - one broad managed policy like `BedrockAgentCoreFullAccess` would defeat the boundary, which is why these roles carry only explicit inline policies
 
 Next up: [Module 5: Cleanup](05-housekeeping.md)
 

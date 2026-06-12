@@ -19,11 +19,15 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 app = BedrockAgentCoreApp()
 
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
 
 def create_basic_agent() -> Agent:
     """Create a basic agent with a simple system prompt."""
     system_prompt = "You are a helpful assistant. Answer questions clearly and concisely."
-    return Agent(system_prompt=system_prompt, name="BasicAgent")
+    return Agent(model=MODEL_ID, system_prompt=system_prompt, name="BasicAgent")
 
 
 @app.entrypoint

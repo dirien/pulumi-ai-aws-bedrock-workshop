@@ -254,14 +254,6 @@ const orchestratorExecution = new aws.iam.Role("orchestrator_execution", {
   },
 });
 
-const orchestratorExecutionManaged = new aws.iam.RolePolicyAttachment(
-  "orchestrator_execution_managed",
-  {
-    role: orchestratorExecution.name,
-    policyArn: "arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess",
-  },
-);
-
 const orchestratorExecutionRolePolicy = new aws.iam.RolePolicy(
   "orchestrator_execution",
   {
@@ -377,7 +369,12 @@ const orchestratorInvokeSpecialist = new aws.iam.RolePolicy(
         {
           Sid: "InvokeSpecialistRuntime",
           Effect: "Allow",
-          Action: ["bedrock-agentcore:InvokeAgentRuntime"],
+          // InvokeAgentRuntime carries the A2A messages; GetAgentCard
+          // lets the A2A client discover the specialist's card first.
+          Action: [
+            "bedrock-agentcore:InvokeAgentRuntime",
+            "bedrock-agentcore:GetAgentCard",
+          ],
           Resource: pulumi
             .all([currentRegion, currentIdentity])
             .apply(
@@ -427,14 +424,6 @@ const specialistExecution = new aws.iam.Role("specialist_execution", {
     Module: "IAM",
   },
 });
-
-const specialistExecutionManaged = new aws.iam.RolePolicyAttachment(
-  "specialist_execution_managed",
-  {
-    role: specialistExecution.name,
-    policyArn: "arn:aws:iam::aws:policy/BedrockAgentCoreFullAccess",
-  },
-);
 
 const specialistExecutionRolePolicy = new aws.iam.RolePolicy(
   "specialist_execution",
@@ -903,6 +892,11 @@ const specialistAgent = new aws.bedrock.AgentcoreAgentRuntime(
         containerUri: pulumi.interpolate`${specialistEcr.repositoryUrl}:${imageTag}`,
       },
     },
+    // The specialist speaks the A2A protocol (JSON-RPC on port 9000)
+    // instead of the default HTTP contract on port 8080.
+    protocolConfiguration: {
+      serverProtocol: "A2A",
+    },
     networkConfiguration: {
       networkMode: networkMode,
     },
@@ -916,7 +910,6 @@ const specialistAgent = new aws.bedrock.AgentcoreAgentRuntime(
     dependsOn: [
       triggerBuildSpecialist,
       specialistExecutionRolePolicy,
-      specialistExecutionManaged,
     ],
   },
 );
@@ -954,7 +947,6 @@ const orchestratorAgent = new aws.bedrock.AgentcoreAgentRuntime(
       triggerBuildOrchestrator,
       orchestratorExecutionRolePolicy,
       orchestratorInvokeSpecialist,
-      orchestratorExecutionManaged,
     ],
   },
 );

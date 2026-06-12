@@ -36,7 +36,7 @@ That's the whole stack: **Pulumi** (in TypeScript or Python) deploys infrastruct
 
 The intro covered the tools on their own. Here's how they fit together when you actually deploy.
 
-One piece the intro skipped: the **[Strands SDK](https://strandsagents.com/)** (software development kit), the Python framework you'll write agents with. You define a system prompt, attach tools, and Strands runs the conversation loop with the LLM for you. Its built-in `BedrockAgentCoreApp` class wraps your agent as an HTTP (Hypertext Transfer Protocol) service that AgentCore Runtime knows how to invoke. That's the bridge between the code you write and the runtime Pulumi provisions.
+One piece the intro skipped: the **[Strands SDK](https://strandsagents.com/)** (software development kit), the Python framework you'll write agents with. You define a system prompt, attach tools, and Strands runs the conversation loop with the LLM for you. A second, separate package - AWS's **[`bedrock-agentcore` SDK](https://github.com/aws/bedrock-agentcore-sdk-python)** - provides the `BedrockAgentCoreApp` class that wraps your agent as an HTTP (Hypertext Transfer Protocol) service AgentCore Runtime knows how to invoke. Strands is the framework your agent thinks with; `bedrock-agentcore` is the bridge between that code and the runtime Pulumi provisions.
 
 Here's the flow:
 
@@ -52,58 +52,9 @@ ESC provides AWS credentials (encrypted secrets)
 AgentCore Runtime runs your agent
 ```
 
-## Step 1: Log into Pulumi Cloud
-
-If you haven't already, create a free Pulumi account.
-
-### Codespaces Users and Optionally Local Terminal Users
-
-Go to the Pulumi Cloud UI and click on your user account.
-
-Select `Personal access tokens` and create an access token.
-
-Then log in from the terminal:
-
-```bash
-export PULUMI_ACCESS_TOKEN=pul-xxxxxx
-pulumi login
-```
-
-Verify it worked:
-
-```bash
-pulumi whoami
-```
-
-You should see your username.
-
-### Local Terminal Users
-
-Log in from the terminal:
-
-```bash
-pulumi login
-```
-
-This opens a browser window. Sign in (or create an account), then return to the terminal.
-
-Verify it worked:
-
-```bash
-pulumi whoami
-```
-
-You should see your username.
-
-## Tips for success
-
-1. **Follow the modules sequentially** - each one builds on concepts from the previous module
-2. **Core path vs. stretch goal** - Modules 0-3 and 5 are the core path that fits the workshop slot. Module 4 is a stretch goal for anyone who finishes early. It's its own Pulumi stack, so skipping it is fine; pick it up later
-3. **Complete the verification steps** at the end of each section to catch issues early
-4. **Ask your instructors for help** - we're here to keep you moving
-5. **Experiment** - once a module works, try modifying the agent prompt or tools to see what happens
-
 ## Getting started
+
+Everything from Step 1 onward happens in a terminal, so set one up first.
 
 ### Option 1: GitHub Codespaces (recommended)
 
@@ -126,7 +77,51 @@ Wait for the devcontainer to build (takes a couple of minutes). All tools (Pulum
 3. Install Node.js 18+ and Python 3.11+
 4. Install [uv](https://docs.astral.sh/uv/) for Python dependency management
 5. Install test dependencies: `pip install boto3`
-6. Run `pulumi login` to authenticate with Pulumi Cloud
+
+## Step 1: Log into Pulumi Cloud
+
+If you haven't already, create a free Pulumi account.
+
+### In Codespaces: log in with an access token
+
+A Codespace can't open a browser window on your machine, so use a token instead. (This flow works locally too, if you prefer it.)
+
+Go to the Pulumi Cloud UI and click on your user account.
+
+Select `Personal access tokens` and create an access token.
+
+Then log in from the terminal:
+
+```bash
+export PULUMI_ACCESS_TOKEN=pul-xxxxxx
+pulumi login
+```
+
+Verify it worked:
+
+```bash
+pulumi whoami
+```
+
+You should see your username.
+
+### On your local machine: log in via the browser
+
+Log in from the terminal:
+
+```bash
+pulumi login
+```
+
+This opens a browser window. Sign in (or create an account), then return to the terminal.
+
+Verify it worked:
+
+```bash
+pulumi whoami
+```
+
+You should see your username.
 
 ## Step 2: Create your ESC environment for AWS credentials
 
@@ -287,6 +282,14 @@ Keep this identifier consistent across all modules. Write it down.
 Each module has a markdown file with instructions (what you're reading now) and a solution folder with the complete working code if you get stuck. From Module 2 onward the solutions come in both languages (e.g., `02-solution/typescript/` and `02-solution/python/`).
 
 The core path runs 0 → 1 → 2 → 3 → 5. You start by running an agent locally (Module 1), deploy it to AgentCore (Module 2), and by the end you'll have an orchestrator that delegates to a specialist agent (Module 3). Module 4 is a stretch goal for anyone who finishes early: a multi-tool weather agent with Browser, Code Interpreter, and Memory.
+
+## Tips for success
+
+1. **Follow the modules sequentially** - each one builds on concepts from the previous module
+2. **Core path vs. stretch goal** - Modules 0-3 and 5 are the core path that fits the workshop slot. Module 4 is a stretch goal for anyone who finishes early. It's its own Pulumi stack, so skipping it is fine; pick it up later
+3. **Complete the verification steps** at the end of each section to catch issues early
+4. **Ask your instructors for help** - we're here to keep you moving
+5. **Experiment** - once a module works, try modifying the agent prompt or tools to see what happens
 
 ## What you learned
 

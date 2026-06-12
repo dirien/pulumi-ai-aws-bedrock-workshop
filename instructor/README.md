@@ -51,7 +51,7 @@ pulumi config set keyVersion 2
 pulumi up --yes
 ```
 
-The HTML regenerates with the new values. CloudFront cache TTL is 5 minutes, so changes propagate quickly. To force immediate propagation:
+The HTML regenerates with the new values, but the distribution uses the managed `CachingOptimized` cache policy, whose default TTL is 24 hours - a redeploy alone won't refresh what participants see. Always run the invalidation, especially when rotating leaked credentials mid-workshop:
 
 ```bash
 aws cloudfront create-invalidation --distribution-id $(pulumi stack output distributionId) --paths "/*"

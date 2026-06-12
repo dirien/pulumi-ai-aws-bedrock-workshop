@@ -76,6 +76,18 @@ memory = aws.bedrock.AgentcoreMemory(
     },
 )
 
+# Long-term extraction: the USER_PREFERENCE strategy reads conversation
+# events and distills preference records into the preferences/{actorId}
+# namespace, where the agent's memory tool looks them up.
+memory_strategy = aws.bedrock.AgentcoreMemoryStrategy(
+    "user_preferences",
+    name="user_preferences",
+    memory_id=memory.id,
+    type="USER_PREFERENCE",
+    description="Extract long-term activity preferences from conversation",
+    namespaces=["preferences/{actorId}"],
+)
+
 # ============================================================================
 # S3 Buckets
 # ============================================================================
@@ -687,8 +699,15 @@ aws.lambda_.Invocation(
         "memoryId": memory.id,
         "lambdaCodeHash": memory_init_code_hash,
     },
+    # The strategy must exist before the seed event is written - extraction
+    # only processes events that arrive while the strategy is active.
     opts=pulumi.ResourceOptions(
-        depends_on=[memory, memory_init_function, memory_init_basic_execution]
+        depends_on=[
+            memory,
+            memory_strategy,
+            memory_init_function,
+            memory_init_basic_execution,
+        ]
     ),
 )
 

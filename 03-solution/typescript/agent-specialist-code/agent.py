@@ -1,7 +1,18 @@
-from strands import Agent
-from bedrock_agentcore.runtime import BedrockAgentCoreApp
+"""Specialist agent, served over the open A2A protocol.
 
-app = BedrockAgentCoreApp()
+Instead of the HTTP contract from Module 2 (BedrockAgentCoreApp on port 8080),
+this agent is an A2A server: JSON-RPC 2.0 on port 9000, an agent card at
+/.well-known/agent-card.json, and a /ping health check. Any A2A client can
+discover and call it - the orchestrator is just one of them.
+"""
+
+from bedrock_agentcore.runtime.a2a import serve_a2a
+from strands import Agent
+from strands.multiagent.a2a import StrandsA2AExecutor
+
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def create_specialist_agent() -> Agent:
@@ -11,29 +22,16 @@ def create_specialist_agent() -> Agent:
     When asked questions, provide thorough, well-reasoned responses with specific details.
     Focus on accuracy and completeness in your answers."""
 
-    return Agent(system_prompt=system_prompt, name="SpecialistAgent")
-
-
-@app.entrypoint
-async def invoke(payload=None):
-    """Main entrypoint for specialist agent"""
-    try:
-        # Get the query from payload
-        query = payload.get("prompt", "Hello") if payload else "Hello"
-
-        # Create and use the specialist agent
-        agent = create_specialist_agent()
-        response = agent(query)
-
-        return {
-            "status": "success",
-            "agent": "specialist",
-            "response": response.message["content"][0]["text"],
-        }
-
-    except Exception as e:
-        return {"status": "error", "agent": "specialist", "error": str(e)}
+    return Agent(
+        model=MODEL_ID,
+        system_prompt=system_prompt,
+        name="SpecialistAgent",
+        description="An analytical specialist that gives thorough, detailed answers.",
+    )
 
 
 if __name__ == "__main__":
-    app.run()
+    # serve_a2a handles the protocol plumbing: JSON-RPC routing, the agent
+    # card, and the /ping health check AgentCore polls. Bind to 0.0.0.0 so
+    # the runtime can reach the server inside the container.
+    serve_a2a(StrandsA2AExecutor(create_specialist_agent()), host="0.0.0.0")

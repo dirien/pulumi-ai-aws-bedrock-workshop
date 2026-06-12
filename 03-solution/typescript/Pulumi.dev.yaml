@@ -1,4 +1,6 @@
 environment:
-  - pulumi-idp/auth
+  - aws-bedrock-workshop/dev
 config:
-  multi-agent-runtime:stackName: agentcore-multi-ws
+  # Add your unique suffix from Module 0 to avoid collisions in the shared
+  # account, e.g. agentcore-multi-ab12
+  multi-agent-runtime:stackName: agentcore-multi

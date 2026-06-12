@@ -1,4 +1,4 @@
-strands-agents
+strands-agents[a2a]~=1.42.0
 boto3>=1.40.0
 botocore>=1.40.0
-bedrock-agentcore
+bedrock-agentcore[a2a]~=1.14.0

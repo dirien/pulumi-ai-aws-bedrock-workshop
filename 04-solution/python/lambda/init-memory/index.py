@@ -17,19 +17,13 @@ def handler(event, _context):
 
     client = boto3.client("bedrock-agentcore", region_name=region)
 
-    activity_preferences = {
-        "good_weather": [
-            "hiking",
-            "beach volleyball",
-            "outdoor picnic",
-            "farmers market",
-            "gardening",
-            "photography",
-            "bird watching",
-        ],
-        "ok_weather": ["walking tours", "outdoor dining", "park visits", "museums"],
-        "poor_weather": ["indoor museums", "shopping", "restaurants", "movies"],
-    }
+    preferences_text = (
+        "When the weather is good I love hiking, beach volleyball, outdoor "
+        "picnics, farmers markets, gardening, photography, and bird watching. "
+        "If the weather is just OK I prefer walking tours, outdoor dining, "
+        "park visits, and museums. When the weather is poor I'd rather visit "
+        "indoor museums, go shopping, eat at restaurants, or watch movies."
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -38,7 +32,16 @@ def handler(event, _context):
         actorId="user123",
         sessionId="session456",
         eventTimestamp=timestamp,
-        payload=[{"blob": json.dumps(activity_preferences)}],
+        # A conversational event, not an opaque blob: the USER_PREFERENCE
+        # strategy only extracts long-term records from conversation turns.
+        payload=[
+            {
+                "conversational": {
+                    "role": "USER",
+                    "content": {"text": preferences_text},
+                }
+            }
+        ],
     )
 
     event_id = response.get("eventId", "unknown")

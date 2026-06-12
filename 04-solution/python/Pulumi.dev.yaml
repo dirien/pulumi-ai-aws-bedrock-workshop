@@ -1,4 +1,6 @@
 environment:
-  - pulumi-idp/auth
+  - aws-bedrock-workshop/dev
 config:
-  end-to-end-weather-agent:stackName: agentcore-weather-ws
+  # Add your unique suffix from Module 0 to avoid collisions in the shared
+  # account, e.g. agentcore-weather-ab12
+  end-to-end-weather-agent:stackName: agentcore-weather

@@ -21,18 +21,19 @@ defaults:
   <h1 class="!text-[5rem] !leading-[1.04] !font-semibold !tracking-tight !mb-6 !max-w-[95%]">
     Deploying AI Agents on AWS with Pulumi and Amazon Bedrock AgentCore
   </h1>
-  <img src="/img/cascadiajs.svg" class="cascadia-logo-onlight !mt-4 h-[9.32rem] w-auto" alt="CascadiaJS" />
-  <img src="/img/cascadiajs-white.svg" class="cascadia-logo-ondark !mt-4 h-[9.32rem] w-auto" alt="CascadiaJS" />
+  <img src="/img/aicamp.png" class="event-logo-onlight !mt-4 h-[6.5rem] w-auto" alt="AICamp" />
+  <img src="/img/aicamp-white.png" class="event-logo-ondark !mt-4 h-[6.5rem] w-auto" alt="AICamp" />
   <p class="!mt-5 !text-[1.8rem] text-[var(--p-fg-muted)] !m-0 !leading-relaxed">
-    Engin Diri · Pulumi
+    Engin Diri · Pulumi<br/>
+    Adam Gordon Bell · Pulumi
   </p>
 </div>
 
 <style scoped>
-/* CascadiaJS logo: navy in light mode, white in dark mode — driven by the
+/* AICamp logo: brand blues in light mode, white in dark mode — driven by the
    theme's own logo-swap tokens so it follows Slidev's dark/light toggle. */
-.cascadia-logo-onlight { display: var(--p-logo-light-display, block); }
-.cascadia-logo-ondark  { display: var(--p-logo-dark-display, none); }
+.event-logo-onlight { display: var(--p-logo-light-display, block); }
+.event-logo-ondark  { display: var(--p-logo-dark-display, none); }
 </style>
 
 <!--
@@ -67,6 +68,35 @@ agent locally, then make it production-ready on AgentCore.
 <!--
 I'm Engin. I build platform tooling at Pulumi. I've helped teams ship cloud
 infrastructure faster — and today we'll take an AI agent from laptop to prod.
+-->
+
+---
+
+<div class="absolute inset-0 flex items-center px-24 gap-20">
+  <div class="flex-shrink-0">
+    <img src="/img/adam-gordon-bell.png" class="w-[28rem] rounded-2xl shadow-xl border-4" style="border-color: rgba(126,107,255,0.45)" alt="Adam Gordon Bell" />
+  </div>
+  <div class="flex-1">
+    <h1 class="!text-[7rem] !leading-[1.02] !font-semibold !tracking-tight !mb-4 !text-[var(--p-primary)]">Adam Gordon Bell</h1>
+    <p class="!text-[2.5rem] !leading-relaxed !m-0 opacity-90">
+      Community Engineer at <strong class="!text-[var(--p-primary)]">Pulumi</strong>
+    </p>
+    <div class="!mt-8 flex items-center gap-8 !text-[1.5rem] opacity-70">
+      <span class="flex items-center gap-2"><carbon-logo-x /> @adamgordonbell</span>
+      <span class="flex items-center gap-2"><carbon-logo-linkedin /> adamgordonbell</span>
+      <span class="flex items-center gap-2"><carbon-logo-github /> adamgordonbell</span>
+    </div>
+    <p class="!mt-10 !text-[1.75rem] !leading-relaxed opacity-70 !m-0">
+      Host of the CoRecursive podcast.<br/>
+      Telling the stories behind the code.
+    </p>
+  </div>
+</div>
+
+<!--
+And I'm Adam — Community Engineer at Pulumi and host of the CoRecursive
+podcast. I'll be helping out in the room today, so wave me over if you
+get stuck.
 -->
 
 ---
@@ -556,7 +586,7 @@ if __name__ == "__main__":
 <div class="zoom-content">
 
 <ul class="!mt-6 !text-[1.4rem] !leading-relaxed space-y-4">
-  <li v-click>on managed platforms (OpenAI Assistants, Vertex AI),</li>
+  <li v-click>on managed platforms (OpenAI Agents SDK, Vertex AI),</li>
   <li v-click>cloud services (AWS Lambda, Azure Functions, Google Cloud)</li>
   <li v-click>container services (Kubernetes, Fly.io, Render, Northflank),</li>
   <li v-click>GPU platforms (Replicate, Modal),</li>
@@ -672,8 +702,8 @@ if __name__ == "__main__":
 <div class="ifaces">
 
 <ul v-click="[0, 1]" class="stack !mt-6 !text-[1.35rem] !leading-relaxed space-y-3">
-  <li>Amazon Bedrock AgentCore starter toolkit</li>
-  <li>AgentCore Python SDK</li>
+  <li>AgentCore CLI (npm)</li>
+  <li>AgentCore SDKs (Python, TypeScript)</li>
   <li>Amazon Bedrock AgentCore MCP server</li>
   <li>AWS SDK</li>
   <li>Amazon Bedrock AgentCore console</li>
@@ -682,8 +712,8 @@ if __name__ == "__main__":
 </ul>
 
 <ul v-click="1" class="stack !mt-6 !text-[1.35rem] !leading-relaxed space-y-3">
-  <li class="strike">Amazon Bedrock AgentCore starter toolkit</li>
-  <li class="keep">AgentCore Python SDK</li>
+  <li class="strike">AgentCore CLI (npm)</li>
+  <li class="keep">AgentCore SDKs (Python, TypeScript)</li>
   <li class="strike">Amazon Bedrock AgentCore MCP server</li>
   <li class="strike">AWS SDK</li>
   <li class="strike">Amazon Bedrock AgentCore console</li>
@@ -796,7 +826,7 @@ Send them off into the hands-on portion — open the repo and start Module 0.
     Stay in <span class="!text-[var(--p-primary)]">touch,</span>
   </h1>
 
-  <div class="flex gap-24 justify-center items-start">
+  <div class="flex gap-16 justify-center items-start">
     <div class="text-center">
       <img src="/img/engin-diri.jpg" class="w-32 h-32 rounded-full mx-auto mb-4 border-4 object-cover" style="border-color: rgba(126,107,255,0.35)" alt="Engin Diri" />
       <div class="!text-[1.7rem] !font-bold">Engin Diri</div>
@@ -807,6 +837,18 @@ Send them off into the hands-on portion — open the repo and start Module 0.
       </div>
       <div class="mt-5 bg-white rounded-lg p-2 inline-block shadow-lg">
         <img src="/img/linkedin-qr.png" class="w-32 h-32" alt="LinkedIn QR" />
+      </div>
+    </div>
+    <div class="text-center">
+      <img src="/img/adam-gordon-bell.png" class="w-32 h-32 rounded-full mx-auto mb-4 border-4 object-cover" style="border-color: rgba(126,107,255,0.35)" alt="Adam Gordon Bell" />
+      <div class="!text-[1.7rem] !font-bold">Adam Gordon Bell</div>
+      <div class="opacity-60 !text-[1.2rem]">Pulumi</div>
+      <div class="flex items-center justify-center gap-4 mt-2 !text-[1.1rem] opacity-60">
+        <span class="flex items-center gap-1"><carbon-logo-github /> adamgordonbell</span>
+        <span class="flex items-center gap-1"><carbon-logo-linkedin /> adamgordonbell</span>
+      </div>
+      <div class="mt-5 bg-white rounded-lg p-2 inline-block shadow-lg">
+        <img src="/img/adam-linkedin-qr.png" class="w-32 h-32" alt="Adam Gordon Bell LinkedIn QR" />
       </div>
     </div>
     <div class="text-center">

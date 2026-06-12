@@ -79,6 +79,20 @@ const memory = new aws.bedrock.AgentcoreMemory("memory", {
   },
 });
 
+// Long-term extraction: the USER_PREFERENCE strategy reads conversation
+// events and distills preference records into the preferences/{actorId}
+// namespace, where the agent's memory tool looks them up.
+const memoryStrategy = new aws.bedrock.AgentcoreMemoryStrategy(
+  "user_preferences",
+  {
+    name: "user_preferences",
+    memoryId: memory.id,
+    type: "USER_PREFERENCE",
+    description: "Extract long-term activity preferences from conversation",
+    namespaces: ["preferences/{actorId}"],
+  },
+);
+
 // ============================================================================
 // S3 Buckets
 // ============================================================================
@@ -692,8 +706,10 @@ new aws.lambda.Invocation(
         .digest("hex"),
     },
   },
+  // The strategy must exist before the seed event is written - extraction
+  // only processes events that arrive while the strategy is active.
   {
-    dependsOn: [memory, memoryInitFunction, memoryInitBasicExecution],
+    dependsOn: [memory, memoryStrategy, memoryInitFunction, memoryInitBasicExecution],
   },
 );
 

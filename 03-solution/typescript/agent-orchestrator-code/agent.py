@@ -1,96 +1,44 @@
-from strands import Agent, tool
-from typing import Dict, Any
-import boto3
-from botocore.config import Config
-import json
+"""Orchestrator agent: HTTP entrypoint in front, A2A client toward the specialist.
+
+The orchestrator itself still speaks the Module 2 HTTP contract (port 8080,
+/invocations), so you invoke it exactly like before. What changed is how it
+reaches the specialist: instead of a hand-rolled boto3 call, it uses an A2A
+client that discovers the specialist through its agent card and talks
+JSON-RPC - signed with the same IAM credentials as any AWS API call.
+"""
+
 import os
+
+import boto3
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore.runtime.a2a import build_runtime_url
+from sigv4 import SigV4HTTPXAuth
+from strands import Agent
+from strands_tools.a2a_client import A2AClientToolProvider
 
 app = BedrockAgentCoreApp()
 
-# Environment variable for Specialist Agent ARN (required - set by Pulumi)
-SPECIALIST_ARN = os.getenv("SPECIALIST_ARN")
-if not SPECIALIST_ARN:
-    raise EnvironmentError("SPECIALIST_ARN environment variable is required")
+# The specialist's A2A endpoint rides the AgentCore data plane: its URL is the
+# InvokeAgentRuntime endpoint with the runtime ARN encoded into the path.
+# SPECIALIST_A2A_URL overrides it for local runs (e.g. http://localhost:9000).
+SPECIALIST_URL = os.getenv("SPECIALIST_A2A_URL")
+if not SPECIALIST_URL:
+    specialist_arn = os.getenv("SPECIALIST_ARN")
+    if not specialist_arn:
+        raise EnvironmentError("SPECIALIST_ARN environment variable is required")
+    SPECIALIST_URL = build_runtime_url(specialist_arn)
 
-
-def invoke_specialist(query: str) -> str:
-    """Helper function to invoke specialist agent using boto3"""
-    try:
-        # Get region from environment (set by AgentCore runtime)
-        region = os.getenv("AWS_REGION")
-        if not region:
-            raise EnvironmentError("AWS_REGION environment variable is required")
-        agentcore_client = boto3.client(
-            "bedrock-agentcore",
-            region_name=region,
-            config=Config(
-                read_timeout=900,
-                connect_timeout=30,
-                retries={"max_attempts": 0},
-            ),
-        )
-
-        # Invoke specialist agent runtime (using AWS sample format)
-        response = agentcore_client.invoke_agent_runtime(
-            agentRuntimeArn=SPECIALIST_ARN,
-            qualifier="DEFAULT",
-            payload=json.dumps({"prompt": query}),
-        )
-
-        # Handle streaming response (text/event-stream)
-        if "text/event-stream" in response.get("contentType", ""):
-            result = ""
-            for line in response["response"].iter_lines(chunk_size=10):
-                if line:
-                    line = line.decode("utf-8")
-                    # Remove 'data: ' prefix if present
-                    if line.startswith("data: "):
-                        line = line[6:]
-                    result += line
-            return result
-
-        # Handle JSON response
-        elif response.get("contentType") == "application/json":
-            content = []
-            for chunk in response.get("response", []):
-                content.append(chunk.decode("utf-8"))
-            response_data = json.loads("".join(content))
-            return json.dumps(response_data)
-
-        # Handle other response types
-        else:
-            response_body = response["response"].read()
-            return response_body.decode("utf-8")
-
-    except Exception as e:
-        import traceback
-
-        error_details = traceback.format_exc()
-        return f"Error invoking specialist agent: {str(e)}\nDetails: {error_details}"
-
-
-@tool
-def call_specialist_agent(query: str) -> Dict[str, Any]:
-    """
-    Call the specialist agent for detailed analysis or complex tasks.
-    Use this tool when you need expert analysis or detailed information.
-
-    Args:
-        query: The question or task to send to the specialist agent
-
-    Returns:
-        The specialist agent's response
-    """
-    result = invoke_specialist(query)
-    return {"status": "success", "content": [{"text": result}]}
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def create_orchestrator_agent() -> Agent:
-    """Create the orchestrator agent with the tool to call specialist agent"""
+    """Create the orchestrator agent with A2A client tools for the specialist."""
     system_prompt = """You are an orchestrator agent.
     You can handle simple queries directly, but for complex analytical tasks,
-    you should delegate to the specialist agent using the call_specialist_agent tool.
+    you should delegate to the specialist agent: use the a2a_send_message tool
+    to send it the question (it is already discovered for you).
 
     Use the specialist agent when:
     - The query requires detailed analysis
@@ -99,8 +47,25 @@ def create_orchestrator_agent() -> Agent:
 
     Handle simple queries (greetings, basic questions) yourself."""
 
+    # Sign every request to the specialist with SigV4 - same IAM identity,
+    # same InvokeAgentRuntime permission as a boto3 call, new protocol.
+    session = boto3.Session()
+    auth = SigV4HTTPXAuth(
+        credentials=session.get_credentials(),
+        service="bedrock-agentcore",
+        region=os.getenv("AWS_REGION") or session.region_name,
+    )
+
+    # The provider fetches the specialist's agent card and exposes A2A tools
+    # (a2a_send_message, a2a_discover_agent, ...) to the orchestrator.
+    specialist = A2AClientToolProvider(
+        known_agent_urls=[SPECIALIST_URL],
+        httpx_client_args={"auth": auth},
+    )
+
     return Agent(
-        tools=[call_specialist_agent],
+        model=MODEL_ID,
+        tools=specialist.tools,
         system_prompt=system_prompt,
         name="OrchestratorAgent",
     )

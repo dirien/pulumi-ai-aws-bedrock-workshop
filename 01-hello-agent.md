@@ -46,16 +46,36 @@ mkdir 01-hello-agent && cd 01-hello-agent
 Create a `basic_agent.py` file in your IDE and copy the content in:
 
 ```python
+"""A minimal Strands agent wrapped for Amazon Bedrock AgentCore.
+
+Run it locally:
+
+    python basic_agent.py
+
+It starts an HTTP server on http://localhost:8080 with two routes that
+AgentCore also calls in the cloud:
+
+    POST /invocations   -> run the agent on a {"prompt": "..."} payload
+    GET  /ping          -> health check
+
+This is the *same* file you deploy in Module 2 - running it locally first
+means "deploy" later is just shipping something you've already seen work.
+"""
+
 from strands import Agent
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 app = BedrockAgentCoreApp()
 
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
 
 def create_basic_agent() -> Agent:
     """Create a basic agent with a simple system prompt."""
     system_prompt = "You are a helpful assistant. Answer questions clearly and concisely."
-    return Agent(system_prompt=system_prompt, name="BasicAgent")
+    return Agent(model=MODEL_ID, system_prompt=system_prompt, name="BasicAgent")
 
 
 @app.entrypoint
@@ -81,9 +101,13 @@ if __name__ == "__main__":
     app.run()
 ```
 
-Three things to notice:
+Four things to notice:
 
 - `BedrockAgentCoreApp()` is the wrapper that exposes `/invocations` and `/ping`.
+- `MODEL_ID` pins the exact Bedrock model (Claude Haiku 4.5 through the `us.`
+  cross-region inference profile - fast and cheap). Leave the `model` argument off
+  and Strands picks a default that changes between SDK releases: fine for a quick
+  demo, surprising when a rebuild suddenly answers with a different model.
 - `@app.entrypoint` marks the function that runs on each request. The payload is a
   dict - here we read a `"prompt"` key.
 - `app.run()` starts the local HTTP server when you run the file directly.
@@ -93,10 +117,13 @@ Three things to notice:
 Create a `requirements.txt` file in your IDE and copy the content in:
 
 ```text
-strands-agents
-bedrock-agentcore
+strands-agents~=1.42.0
+bedrock-agentcore~=1.14.0
 boto3
 ```
+
+The two SDKs are pinned (`~=` allows patch updates only) so everyone in the room,
+and every container build in later modules, resolves the same versions.
 
 Install them (a virtual environment keeps things tidy):
 

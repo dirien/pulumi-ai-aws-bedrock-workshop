@@ -1,4 +1,5 @@
 ---
+render_with_liquid: false
 ---
 # Module 4: The full stack: weather agent with tools and memory
 
@@ -28,7 +29,7 @@ New to a term? See the [Glossary](glossary.md) for every acronym used in this wo
 
 **[Code Interpreter](https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcoreinterpreter/)** is a sandboxed Python runtime. Your agent generates Python code, sends it to Code Interpreter via the `CodeInterpreter` client, and gets stdout/stderr back. This is useful for calculations, data transformation, or anything where running code is more reliable than asking the LLM to compute an answer from text alone.
 
-**[Memory](https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcorememory/)** is a persistent event store. You write events with JSON blob payloads tagged with `actorId` and `sessionId`, and read them back later. Events expire after a configurable TTL (time to live). In this module the agent uses it to store activity preferences (what to do in good vs. poor weather) that survive between invocations.
+**[Memory](https://www.pulumi.com/registry/packages/aws/api-docs/bedrock/agentcorememory/)** is a persistent store with two layers. Short-term memory is an event log: you write conversation events tagged with `actorId` and `sessionId`, and they expire after a configurable TTL (time to live). Long-term memory is what a **strategy** distills out of those events. This module attaches a `USER_PREFERENCE` strategy that extracts the user's activity preferences (what to do in good vs. poor weather) into records that survive across invocations and sessions.
 
 ### Weather agent workflow
 
@@ -80,18 +81,20 @@ pulumi new aws-typescript --name weather-agent --yes
 
 ```bash
 mkdir 04-weather-agent && cd 04-weather-agent
-pulumi new aws-python --name weather-agent --runtime-options toolchain=uv --yes
+pulumi new aws-python --name weather-agent --yes
 ```
 
 </div>
 
 </div>
 
-Add the ESC environment to `Pulumi.dev.yaml`:
+Add the ESC environment reference to `Pulumi.dev.yaml`:
 
-```yaml
+```bash
+cat >> Pulumi.dev.yaml <<'EOF'
 environment:
   - aws-bedrock-workshop/dev
+EOF
 ```
 
 The `pulumi new` template already includes the AWS provider. Pin it to the version this workshop uses:
@@ -139,7 +142,7 @@ Create a folder for the agent's source:
 mkdir -p agent-code
 ```
 
-Create `weather_agent.py` inside `agent-code`. This is the full agent - every section is explained below.
+Create `weather_agent.py` inside `agent-code`. You'll build it up section by section: copy each code block below into the file, in order, top to bottom - together they form the complete agent. (If you'd rather paste it in one go, the assembled file is at `04-solution/<language>/agent-code/weather_agent.py`.)
 
 ### Imports and environment variables
 
@@ -160,7 +163,7 @@ from browser_use.browser.session import BrowserSession
 from browser_use.browser import BrowserProfile
 from langchain_aws import ChatBedrockConverse
 from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
-from bedrock_agentcore.memory import MemoryClient
+from bedrock_agentcore.memory import MemorySessionManager
 from rich.console import Console
 import re
 
@@ -190,7 +193,16 @@ if missing:
     raise EnvironmentError(
         f"Required environment variables not set: {', '.join(missing)}"
     )
+
+# Pin the models so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+# The browser LLM plans page navigation, which Sonnet handles better than
+# Haiku. Newer Claude models use suffix-free IDs: no -20250929-v1:0 date tail.
+BROWSER_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
 ```
+
+Two models this time. The main agent runs on the same pinned Haiku as Modules 1-3, but browser automation is a harder job - the LLM plans every click and form entry from page snapshots - so that one tool gets Claude Sonnet 4.6. Notice its ID has no date suffix: newer Claude models on Bedrock dropped the `-20250929-v1:0` convention.
 
 ### Browser tool (get_weather_data)
 
@@ -240,7 +252,7 @@ async def initialize_browser_session():
         await browser_session.start()
 
         bedrock_chat = ChatBedrockConverse(
-            model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            model_id=BROWSER_MODEL_ID,
             region_name=AWS_REGION,
         )
 
@@ -358,7 +370,7 @@ def generate_analysis_code(weather_data: str) -> Dict[str, Any]:
 
         Return code that outputs list of tuples: [('2025-09-16', 'GOOD'), ('2025-09-17', 'OK'), ...]"""
 
-        agent = Agent()
+        agent = Agent(model=MODEL_ID)
         result = agent(query)
 
         pattern = r"```(?:json|python)\n(.*?)\n```"
@@ -380,6 +392,7 @@ def generate_analysis_code(weather_data: str) -> Dict[str, Any]:
 @tool
 def execute_code(python_code: str) -> Dict[str, Any]:
     """Execute Python code using AgentCore Code Interpreter"""
+    code_client = None
     try:
         code_client = CodeInterpreter(AWS_REGION)
         code_client.start(identifier=CODE_INTERPRETER_ID)
@@ -399,30 +412,48 @@ def execute_code(python_code: str) -> Dict[str, Any]:
 
     except Exception as e:
         return {"status": "error", "content": [{"text": f"Error: {str(e)}"}]}
+
+    finally:
+        # Stop the session: leaked sessions keep billing and block
+        # `pulumi destroy` (the interpreter can't be deleted while
+        # sessions are still active).
+        if code_client:
+            with suppress(Exception):
+                code_client.stop()
 ```
 
 ### Memory tool (get_activity_preferences)
 
-`MemoryClient.list_events` reads back events previously written to the Memory resource. The `actor_id` and `session_id` must match what the init Lambda used when seeding the preferences.
+`MemorySessionManager` is the SDK's current Memory interface (the older `MemoryClient` still works but is marked legacy). The tool reads two layers of memory. **Long-term records** come first: the `USER_PREFERENCE` strategy you'll attach to the Memory resource watches conversation events and distills them into preference records - that's the feature that makes AgentCore Memory more than an event log. Extraction runs asynchronously, though, so for a freshly seeded memory the records may not exist yet; the tool then falls back to reading the raw conversation events. The `actor_id` and `session_id` must match what the init Lambda used when seeding the preferences.
 
 ```python
 @tool
 def get_activity_preferences() -> Dict[str, Any]:
     """Get activity preferences from memory"""
     try:
-        client = MemoryClient(region_name=AWS_REGION)
-        response = client.list_events(
-            memory_id=MEMORY_ID,
-            actor_id="user123",
-            session_id="session456",
-            max_results=50,
-            include_payload=True,
-        )
+        manager = MemorySessionManager(memory_id=MEMORY_ID, region_name=AWS_REGION)
 
-        preferences = (
-            response[0]["payload"][0]["blob"] if response else "No preferences found"
+        # Long-term memory first: the records the USER_PREFERENCE strategy
+        # extracted from past conversation events.
+        records = manager.list_long_term_memory_records(
+            namespace_prefix="preferences/user123",
+            max_results=10,
         )
-        return {"status": "success", "content": [{"text": preferences}]}
+        texts = [r.get("content", {}).get("text", "") for r in records]
+        texts = [t for t in texts if t]
+        if texts:
+            return {"status": "success", "content": [{"text": "\n".join(texts)}]}
+
+        # Extraction runs asynchronously after events are written, so fall
+        # back to the raw conversation if no records have materialized yet.
+        events = manager.list_events(actor_id="user123", session_id="session456")
+        for event in events:
+            for item in event.get("payload", []):
+                text = item.get("conversational", {}).get("content", {}).get("text")
+                if text:
+                    return {"status": "success", "content": [{"text": text}]}
+
+        return {"status": "success", "content": [{"text": "No preferences found"}]}
     except Exception as e:
         return {"status": "error", "content": [{"text": f"Error: {str(e)}"}]}
 ```
@@ -448,6 +479,7 @@ def create_weather_agent() -> Agent:
     IMPORTANT: Provide complete recommendations and end your response. Do NOT ask follow-up questions or wait for additional input."""
 
     return Agent(
+        model=MODEL_ID,
         tools=[
             get_weather_data,
             generate_analysis_code,
@@ -515,16 +547,18 @@ if __name__ == "__main__":
     app.run()
 ```
 
+That's the last section - `weather_agent.py` is complete. If you want to be sure nothing got lost along the way, diff it against the solution's copy before moving on.
+
 ## Step 3: Create requirements.txt and Dockerfile
 
 Create `requirements.txt` inside `agent-code`:
 
 ```text
-strands-agents
+strands-agents~=1.42.0
 strands-agents-tools
 uv
 boto3
-bedrock-agentcore
+bedrock-agentcore~=1.14.0
 bedrock-agentcore-starter-toolkit
 browser-use==0.3.2
 langchain-aws>=0.1.0
@@ -590,19 +624,13 @@ def handler(event, _context):
 
     client = boto3.client("bedrock-agentcore", region_name=region)
 
-    activity_preferences = {
-        "good_weather": [
-            "hiking",
-            "beach volleyball",
-            "outdoor picnic",
-            "farmers market",
-            "gardening",
-            "photography",
-            "bird watching",
-        ],
-        "ok_weather": ["walking tours", "outdoor dining", "park visits", "museums"],
-        "poor_weather": ["indoor museums", "shopping", "restaurants", "movies"],
-    }
+    preferences_text = (
+        "When the weather is good I love hiking, beach volleyball, outdoor "
+        "picnics, farmers markets, gardening, photography, and bird watching. "
+        "If the weather is just OK I prefer walking tours, outdoor dining, "
+        "park visits, and museums. When the weather is poor I'd rather visit "
+        "indoor museums, go shopping, eat at restaurants, or watch movies."
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -611,7 +639,16 @@ def handler(event, _context):
         actorId="user123",
         sessionId="session456",
         eventTimestamp=timestamp,
-        payload=[{"blob": json.dumps(activity_preferences)}],
+        # A conversational event, not an opaque blob: the USER_PREFERENCE
+        # strategy only extracts long-term records from conversation turns.
+        payload=[
+            {
+                "conversational": {
+                    "role": "USER",
+                    "content": {"text": preferences_text},
+                }
+            }
+        ],
     )
 
     event_id = response.get("eventId", "unknown")
@@ -624,7 +661,7 @@ def handler(event, _context):
     }
 ```
 
-Pulumi invokes this Lambda once after the Memory resource is created. The `actorId` and `sessionId` values here must match those used in the agent's `get_activity_preferences` tool - that's how the agent finds the correct event when it calls `MemoryClient.list_events`.
+Pulumi invokes this Lambda once after the Memory resource and its strategy are created. The seed is written as a natural-language conversation turn because that's what the `USER_PREFERENCE` strategy processes - it would skip an opaque `blob` payload entirely. The `actorId` and `sessionId` values must match those used in the agent's `get_activity_preferences` tool, and the actor id also determines the namespace (`preferences/user123`) where the extracted records land.
 
 ## Step 5: Create the build trigger Lambda
 
@@ -898,6 +935,16 @@ code_interpreter = aws.bedrock.AgentcoreCodeInterpreter(
 
 The Memory resource stores events with a 30-day expiry. Events are tagged with actor IDs and session IDs so different users or sessions can have separate preferences.
 
+On its own, though, a Memory is just an event log. The second resource is what makes it interesting: a `USER_PREFERENCE` **strategy**, which watches incoming conversation events and extracts durable preference records into the `preferences/{actorId}` namespace - the agent's memory tool reads them from there. The `{actorId}` placeholder is filled in per actor, so each user gets their own records.
+
+```mermaid
+flowchart LR
+    L["Init Lambda\n(seed conversation event)"] -->|create_event| E["Short-term memory\n(events, 30-day TTL)"]
+    E -->|"USER_PREFERENCE strategy\n(async extraction)"| R["Long-term records\npreferences/user123"]
+    R -->|list_long_term_memory_records| T["Agent tool\n(get_activity_preferences)"]
+    E -.->|fallback: list_events| T
+```
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
@@ -912,6 +959,20 @@ const memory = new aws.bedrock.AgentcoreMemory("memory", {
     Module: "AgentCore-Tools",
   },
 });
+
+// Long-term extraction: the USER_PREFERENCE strategy reads conversation
+// events and distills preference records into the preferences/{actorId}
+// namespace, where the agent's memory tool looks them up.
+const memoryStrategy = new aws.bedrock.AgentcoreMemoryStrategy(
+  "user_preferences",
+  {
+    name: "user_preferences",
+    memoryId: memory.id,
+    type: "USER_PREFERENCE",
+    description: "Extract long-term activity preferences from conversation",
+    namespaces: ["preferences/{actorId}"],
+  },
+);
 ```
 
 </div>
@@ -928,6 +989,18 @@ memory = aws.bedrock.AgentcoreMemory(
         "Name": f"{stack_name}-memory",
         "Module": "AgentCore-Tools",
     },
+)
+
+# Long-term extraction: the USER_PREFERENCE strategy reads conversation
+# events and distills preference records into the preferences/{actorId}
+# namespace, where the agent's memory tool looks them up.
+memory_strategy = aws.bedrock.AgentcoreMemoryStrategy(
+    "user_preferences",
+    name="user_preferences",
+    memory_id=memory.id,
+    type="USER_PREFERENCE",
+    description="Extract long-term activity preferences from conversation",
+    namespaces=["preferences/{actorId}"],
 )
 ```
 
@@ -2207,8 +2280,10 @@ new aws.lambda.Invocation(
         .digest("hex"),
     },
   },
+  // The strategy must exist before the seed event is written - extraction
+  // only processes events that arrive while the strategy is active.
   {
-    dependsOn: [memory, memoryInitFunction, memoryInitBasicExecution],
+    dependsOn: [memory, memoryStrategy, memoryInitFunction, memoryInitBasicExecution],
   },
 );
 ```
@@ -2303,8 +2378,15 @@ aws.lambda_.Invocation(
         "memoryId": memory.id,
         "lambdaCodeHash": memory_init_code_hash,
     },
+    # The strategy must exist before the seed event is written - extraction
+    # only processes events that arrive while the strategy is active.
     opts=pulumi.ResourceOptions(
-        depends_on=[memory, memory_init_function, memory_init_basic_execution]
+        depends_on=[
+            memory,
+            memory_strategy,
+            memory_init_function,
+            memory_init_basic_execution,
+        ]
     ),
 )
 ```
@@ -2430,7 +2512,7 @@ AgentCore emits logs and traces through the CloudWatch vended logs delivery syst
 > aws xray update-trace-segment-destination --destination CloudWatchLogs --region us-east-1
 > ```
 >
-> **Using the workshop-provided AWS account?** Skip this step — the trace segment destination is already configured for you.
+> **Using the workshop-provided AWS account?** Skip this step - the trace segment destination is already configured for you.
 
 <div class="lang-tabs" markdown="1">
 
@@ -2699,33 +2781,210 @@ This takes 5-10 minutes. Pulumi creates the Browser, Code Interpreter, and Memor
 
 ## Step 9: Test your deployment
 
-Copy `test_weather_agent.py` from the solution folder. The script uses `boto3` to call the AgentCore runtime and to poll S3, so add it to the project first:
+This script checks the deployment in three stages: is the runtime ready, does it accept an invocation, and does the Markdown report land in S3. Create `test_weather_agent.py` in the module root and copy the content in:
 
-<div class="lang-tabs" markdown="1">
+```python
+#!/usr/bin/env python3
+"""
+Weather Agent Workshop Test
 
-<div class="lang-tab" data-lang="typescript" markdown="1">
+Verifies the full deployment pipeline:
+1. Runtime status check (instant)
+2. Agent invocation (handles cold start gracefully)
+3. Waits for the Markdown report to appear in S3
+
+Usage:
+    python test_weather_agent.py <agent_arn>
+"""
+
+import boto3
+import json
+import sys
+import time
+import subprocess
+from botocore.config import Config
+
+# pulumi env run pipes stdout, which makes Python block-buffer it; without
+# this the progress lines all appear at once instead of as the test runs.
+sys.stdout.reconfigure(line_buffering=True)
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python test_weather_agent.py <agent_arn>")
+        sys.exit(1)
+
+    agent_arn = sys.argv[1]
+    region = agent_arn.split(":")[3]
+    runtime_id = agent_arn.split("/")[-1]
+
+    print("=" * 60)
+    print("WEATHER AGENT - FULL PIPELINE TEST")
+    print("=" * 60)
+    print(f"Region:     {region}")
+    print(f"Runtime ID: {runtime_id}")
+    print()
+
+    passed = 0
+    failed = 0
+
+    # --- Test 1: Runtime status ---
+    print("[1/3] Checking runtime status...")
+    try:
+        control = boto3.client(
+            "bedrock-agentcore-control", region_name=region
+        )
+        info = control.get_agent_runtime(agentRuntimeId=runtime_id)
+        status = info.get("status", "UNKNOWN")
+        if status == "READY":
+            print("      PASS - Runtime is READY")
+            passed += 1
+        else:
+            print(f"      FAIL - Runtime is {status} (expected READY)")
+            failed += 1
+    except Exception as e:
+        print(f"      FAIL - {e}")
+        failed += 1
+
+    # --- Test 2: Invoke agent ---
+    print("[2/3] Invoking agent (first call may take 1-2 min for cold start)...")
+    try:
+        timeout_config = Config(
+            read_timeout=180,
+            connect_timeout=30,
+            retries={"max_attempts": 0},
+        )
+        client = boto3.client(
+            "bedrock-agentcore",
+            region_name=region,
+            config=timeout_config,
+        )
+
+        response = client.invoke_agent_runtime(
+            agentRuntimeArn=agent_arn,
+            qualifier="DEFAULT",
+            payload=json.dumps({
+                "prompt": "What should I do this weekend in Richmond VA?"
+            }),
+        )
+
+        http_status = response["ResponseMetadata"]["HTTPStatusCode"]
+        raw = response["response"].read()
+        body = json.loads(raw.decode("utf-8"))
+
+        agent_status = body.get("status", "")
+
+        if http_status == 200 and agent_status == "Started":
+            print("      PASS - Agent responded: status=Started")
+            passed += 1
+        elif http_status == 200:
+            print("      PASS - Agent responded (HTTP 200)")
+            passed += 1
+        else:
+            print(f"      WARN - HTTP {http_status}")
+            passed += 1
+
+    except Exception as e:
+        error_msg = str(e)
+        if "timed out" in error_msg.lower() or "timeout" in error_msg.lower():
+            print("      PASS - Agent invoked (cold start in progress)")
+            print("             The container is loading dependencies.")
+            print("             This is normal for the first call.")
+            passed += 1
+        else:
+            print(f"      FAIL - {error_msg[:200]}")
+            failed += 1
+
+    # --- Test 3: Wait for Markdown report in S3 ---
+    print("[3/3] Waiting for Markdown report in S3...")
+    print("      (The agent scrapes weather.gov, classifies days,")
+    print("       reads memory, and writes a report. ~3-5 min.)")
+
+    bucket = None
+    try:
+        r = subprocess.run(
+            ["pulumi", "stack", "output", "resultsBucketName"],
+            capture_output=True, text=True
+        )
+        bucket = r.stdout.strip()
+    except Exception:
+        pass
+
+    if not bucket:
+        print("      SKIP - Could not get resultsBucketName from Pulumi")
+        print("             Run: pulumi stack output resultsBucketName")
+    else:
+        s3 = boto3.client("s3", region_name=region)
+        found = False
+        max_attempts = 24  # 24 x 15s = 6 min
+        for attempt in range(max_attempts):
+            time.sleep(15)
+            try:
+                objects = s3.list_objects_v2(Bucket=bucket, MaxKeys=10)
+                if objects.get("KeyCount", 0) > 0:
+                    keys = [o["Key"] for o in objects["Contents"]]
+                    md_files = [k for k in keys if k.endswith(".md")]
+                    if md_files:
+                        print(f"      PASS - Markdown report found: {md_files[0]}")
+                        # Show a preview
+                        obj = s3.get_object(Bucket=bucket, Key=md_files[0])
+                        content = obj["Body"].read().decode("utf-8")
+                        preview = content[:500]
+                        print()
+                        print("      --- Report preview ---")
+                        for line in preview.split("\n"):
+                            print(f"      {line}")
+                        if len(content) > 500:
+                            print("      ...")
+                        print(f"      --- ({len(content)} chars total) ---")
+                        passed += 1
+                        found = True
+                        break
+                    elif keys:
+                        print(f"      Found files but no .md yet: {keys}")
+            except Exception:
+                pass
+
+            elapsed = (attempt + 1) * 15
+            mins = elapsed // 60
+            secs = elapsed % 60
+            print(f"      ...{mins}m{secs:02d}s elapsed, still processing")
+
+        if not found:
+            print("      FAIL - No Markdown report after 6 minutes")
+            print("      Check CloudWatch logs for errors:")
+            log_group = f"/aws/bedrock-agentcore/runtimes/{runtime_id}-DEFAULT"
+            print(f"        aws logs tail \"{log_group}\" --region {region}")
+            failed += 1
+
+    # --- Summary ---
+    print()
+    print("=" * 60)
+    total = passed + failed
+    if failed == 0:
+        print(f"ALL CHECKS PASSED ({passed}/{total})")
+    else:
+        print(f"SOME CHECKS FAILED ({failed} failed, {passed} passed)")
+    print("=" * 60)
+
+    sys.exit(0 if failed == 0 else 1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+The script needs `boto3` (Codespaces has it preinstalled, so you can skip this there):
 
 ```bash
 pip install boto3
 ```
-
-</div>
-
-<div class="lang-tab" data-lang="python" markdown="1">
-
-```bash
-pip install boto3
-```
-
-</div>
-
-</div>
 
 Then run the test:
 
 ```bash
 export AGENT_ARN=$(pulumi stack output agentRuntimeArn)
-pulumi env run aws-bedrock-workshop/dev -- uv run test_weather_agent.py $AGENT_ARN
+pulumi env run aws-bedrock-workshop/dev -- python test_weather_agent.py $AGENT_ARN
 ```
 
 The test script runs through the full pipeline:
@@ -2771,7 +3030,7 @@ You'll see each step logged: browser session connecting, weather data scraped, P
 **Ask about a different city.** Invoke the agent again with a different location:
 
 ```bash
-pulumi env run aws-bedrock-workshop/dev -- uv run python -c "
+pulumi env run aws-bedrock-workshop/dev -- python -c "
 import boto3, json
 from botocore.config import Config
 client = boto3.client('bedrock-agentcore', region_name='us-east-1',
@@ -2787,7 +3046,7 @@ print(json.loads(r['response'].read().decode()))
 
 Wait a few minutes and check S3 again. The new report should appear in the results bucket.
 
-**Change the activity preferences.** The preferences live in Memory, seeded by the init Lambda. Open `lambda/init-memory/index.py` and change the activity lists - add "surfing" to good weather, or "escape rooms" to poor weather. Redeploy with `pulumi up` to re-seed Memory, then invoke the agent again. The recommendations should reflect your new preferences.
+**Change the activity preferences.** The preferences live in Memory, seeded by the init Lambda. Open `lambda/init-memory/index.py` and edit the preferences text - say you love surfing when the weather is good, or escape rooms when it's poor. Redeploy with `pulumi up` to re-seed Memory, then invoke the agent again. The recommendations should reflect your new preferences (give the `USER_PREFERENCE` extraction a minute or two to process the new event).
 
 **Tweak the classification thresholds.** Open `agent-code/weather_agent.py` and find the `generate_analysis_code` tool. Edit the classification rules in the prompt (e.g., change the GOOD range from 65-80 to 55-90). Redeploy and see how the day classifications change.
 
@@ -2804,6 +3063,7 @@ pulumi env run aws-bedrock-workshop/dev -- aws s3 cp s3://$(pulumi stack output 
 - The async task pattern (`asyncio.create_task`) returns immediately and processes work in the background
 - CloudWatch vended logs and X-Ray traces require a three-resource delivery pipeline: source, destination, and delivery
 - The Memory API stores events tagged with actor IDs and session IDs, with configurable TTL
+- A `USER_PREFERENCE` strategy turns Memory from an event log into long-term memory: it extracts preference records from conversation events asynchronously, and the agent reads them through `MemorySessionManager`
 - A Lambda invocation can seed Memory with initial data during deployment, so the agent has preferences from the very first invocation
 
 Next up: [Module 5: Cleanup](05-housekeeping.md)

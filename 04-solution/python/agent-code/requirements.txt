@@ -1,8 +1,8 @@
-strands-agents
+strands-agents~=1.42.0
 strands-agents-tools
 uv
 boto3
-bedrock-agentcore
+bedrock-agentcore~=1.14.0
 bedrock-agentcore-starter-toolkit
 browser-use==0.3.2
 langchain-aws>=0.1.0

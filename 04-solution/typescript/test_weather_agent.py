@@ -18,6 +18,10 @@ import time
 import subprocess
 from botocore.config import Config
 
+# pulumi env run pipes stdout, which makes Python block-buffer it; without
+# this the progress lines all appear at once instead of as the test runs.
+sys.stdout.reconfigure(line_buffering=True)
+
 
 def main():
     if len(sys.argv) < 2:

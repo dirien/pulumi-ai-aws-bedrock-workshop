@@ -142,16 +142,36 @@ This is the agent from Module 1, unchanged. Create `basic_agent.py` inside
 `agent-code` and copy the content in:
 
 ```python
+"""A minimal Strands agent wrapped for Amazon Bedrock AgentCore.
+
+Run it locally:
+
+    python basic_agent.py
+
+It starts an HTTP server on http://localhost:8080 with two routes that
+AgentCore also calls in the cloud:
+
+    POST /invocations   -> run the agent on a {"prompt": "..."} payload
+    GET  /ping          -> health check
+
+This is the *same* file you deploy in Module 2 - running it locally first
+means "deploy" later is just shipping something you've already seen work.
+"""
+
 from strands import Agent
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 app = BedrockAgentCoreApp()
 
+# Pin the model so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
 
 def create_basic_agent() -> Agent:
     """Create a basic agent with a simple system prompt."""
     system_prompt = "You are a helpful assistant. Answer questions clearly and concisely."
-    return Agent(system_prompt=system_prompt, name="BasicAgent")
+    return Agent(model=MODEL_ID, system_prompt=system_prompt, name="BasicAgent")
 
 
 @app.entrypoint
@@ -163,9 +183,12 @@ async def invoke(payload=None):
             if payload
             else "Hello, how are you?"
         )
+
         agent = create_basic_agent()
         response = agent(query)
+
         return {"status": "success", "response": response.message["content"][0]["text"]}
+
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
@@ -178,8 +201,8 @@ Create `requirements.txt` inside `agent-code` as well, with the agent's runtime
 dependencies:
 
 ```text
-strands-agents
-bedrock-agentcore
+strands-agents~=1.42.0
+bedrock-agentcore~=1.14.0
 boto3
 ```
 
@@ -687,10 +710,14 @@ pulumi.export("agentRuntimeId", basic_agent.agent_runtime_id)
 
 A few things worth noticing:
 
-- The execution role trusts only `bedrock-agentcore.amazonaws.com`, and its inline
-  policy grants exactly what the agent needs: read the code zip from S3, write
-  CloudWatch logs, emit X-Ray traces, call Bedrock models, and fetch workload
-  identity tokens. No ECR permissions - there's no container.
+- The execution role trusts only `bedrock-agentcore.amazonaws.com`. Its inline
+  policy spells out what the agent needs - read the code zip from S3, write
+  CloudWatch logs, emit X-Ray traces, call Bedrock models, fetch workload
+  identity tokens - and no ECR permissions, because there's no container. The
+  broad `BedrockAgentCoreFullAccess` managed policy rides along as a convenience
+  while you're learning. Module 3 drops it from the agent roles: its one-way
+  invocation boundary only holds when no attached policy quietly grants the
+  permission back.
 - `codeConfiguration` is what makes this a direct-code deployment.
   `entryPoints: ["basic_agent.py"]` tells AgentCore which file to run, and
   `runtime` selects the managed Python version.

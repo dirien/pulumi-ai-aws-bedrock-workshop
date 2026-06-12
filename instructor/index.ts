@@ -41,11 +41,7 @@ function buildEscYaml(kvPairs: Record<string, string>, workshopName: string): st
   }
   lines.push("  pulumiConfig:");
   lines.push("    aws:region: us-east-1");
-  lines.push("    aws-native:region: us-east-1");
   lines.push("    aws:defaultTags:");
-  lines.push("      tags:");
-  lines.push(`        workshop: ${workshopName}`);
-  lines.push("    aws-native:defaultTags:");
   lines.push("      tags:");
   lines.push(`        workshop: ${workshopName}`);
   return lines.join("\n");
@@ -363,6 +359,8 @@ const workshopPolicy = new aws.iam.Policy("workshop_policy", {
           "iam:ListPolicies",
           "iam:ListPolicyVersions",
           "iam:CreateServiceLinkedRole",
+          // Module 3's "test the one-way IAM boundary" exercise
+          "iam:SimulatePrincipalPolicy",
         ],
         Resource: "*",
       },
@@ -433,7 +431,7 @@ const workshopPolicy = new aws.iam.Policy("workshop_policy", {
         Resource: "*",
       },
       {
-        // Covers Runtime, Gateway, Browser, Code Interpreter, Memory (all solutions)
+        // Covers Runtime, Browser, Code Interpreter, Memory (all solutions)
         Sid: "BedrockAgentCoreAccess",
         Effect: "Allow",
         Action: ["bedrock-agentcore:*"],
@@ -447,46 +445,6 @@ const workshopPolicy = new aws.iam.Policy("workshop_policy", {
           "bedrock:InvokeModelWithResponseStream",
           "bedrock:ListFoundationModels",
           "bedrock:GetFoundationModel",
-        ],
-        Resource: "*",
-      },
-      {
-        // Used by solution 02 for JWT authentication on the MCP Gateway
-        Sid: "CognitoAccess",
-        Effect: "Allow",
-        Action: [
-          "cognito-idp:CreateUserPool",
-          "cognito-idp:DeleteUserPool",
-          "cognito-idp:DescribeUserPool",
-          "cognito-idp:UpdateUserPool",
-          "cognito-idp:ListUserPools",
-          "cognito-idp:CreateUserPoolClient",
-          "cognito-idp:DeleteUserPoolClient",
-          "cognito-idp:DescribeUserPoolClient",
-          "cognito-idp:UpdateUserPoolClient",
-          "cognito-idp:ListUserPoolClients",
-          "cognito-idp:AdminCreateUser",
-          "cognito-idp:AdminDeleteUser",
-          "cognito-idp:AdminSetUserPassword",
-          "cognito-idp:AdminGetUser",
-          "cognito-idp:TagResource",
-          "cognito-idp:UntagResource",
-          "cognito-idp:GetUserPoolMfaConfig",
-          "cognito-idp:SetUserPoolMfaConfig",
-        ],
-        Resource: "*",
-      },
-      {
-        // Required by aws-native provider (Cloud Control API) for all resource operations
-        Sid: "CloudControlAccess",
-        Effect: "Allow",
-        Action: [
-          "cloudformation:CreateResource",
-          "cloudformation:DeleteResource",
-          "cloudformation:GetResource",
-          "cloudformation:GetResourceRequestStatus",
-          "cloudformation:ListResources",
-          "cloudformation:UpdateResource",
         ],
         Resource: "*",
       },

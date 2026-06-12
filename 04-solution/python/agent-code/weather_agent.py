@@ -12,7 +12,7 @@ from browser_use.browser.session import BrowserSession
 from browser_use.browser import BrowserProfile
 from langchain_aws import ChatBedrockConverse
 from bedrock_agentcore.tools.code_interpreter_client import CodeInterpreter
-from bedrock_agentcore.memory import MemoryClient
+from bedrock_agentcore.memory import MemorySessionManager
 from rich.console import Console
 import re
 
@@ -42,6 +42,13 @@ if missing:
     raise EnvironmentError(
         f"Required environment variables not set: {', '.join(missing)}"
     )
+
+# Pin the models so every learner gets the same behavior and cost. Without an
+# explicit model, Strands falls back to a default that changes between releases.
+MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+# The browser LLM plans page navigation, which Sonnet handles better than
+# Haiku. Newer Claude models use suffix-free IDs: no -20250929-v1:0 date tail.
+BROWSER_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
 
 
 # Async helper functions
@@ -87,7 +94,7 @@ async def initialize_browser_session():
         await browser_session.start()
 
         bedrock_chat = ChatBedrockConverse(
-            model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+            model_id=BROWSER_MODEL_ID,
             region_name=AWS_REGION,
         )
 
@@ -200,7 +207,7 @@ def generate_analysis_code(weather_data: str) -> Dict[str, Any]:
 
         Return code that outputs list of tuples: [('2025-09-16', 'GOOD'), ('2025-09-17', 'OK'), ...]"""
 
-        agent = Agent()
+        agent = Agent(model=MODEL_ID)
         result = agent(query)
 
         pattern = r"```(?:json|python)\n(.*?)\n```"
@@ -217,6 +224,7 @@ def generate_analysis_code(weather_data: str) -> Dict[str, Any]:
 @tool
 def execute_code(python_code: str) -> Dict[str, Any]:
     """Execute Python code using AgentCore Code Interpreter"""
+    code_client = None
     try:
         code_client = CodeInterpreter(AWS_REGION)
         code_client.start(identifier=CODE_INTERPRETER_ID)
@@ -237,24 +245,42 @@ def execute_code(python_code: str) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "error", "content": [{"text": f"Error: {str(e)}"}]}
 
+    finally:
+        # Stop the session: leaked sessions keep billing and block
+        # `pulumi destroy` (the interpreter can't be deleted while
+        # sessions are still active).
+        if code_client:
+            with suppress(Exception):
+                code_client.stop()
+
 
 @tool
 def get_activity_preferences() -> Dict[str, Any]:
     """Get activity preferences from memory"""
     try:
-        client = MemoryClient(region_name=AWS_REGION)
-        response = client.list_events(
-            memory_id=MEMORY_ID,
-            actor_id="user123",
-            session_id="session456",
-            max_results=50,
-            include_payload=True,
-        )
+        manager = MemorySessionManager(memory_id=MEMORY_ID, region_name=AWS_REGION)
 
-        preferences = (
-            response[0]["payload"][0]["blob"] if response else "No preferences found"
+        # Long-term memory first: the records the USER_PREFERENCE strategy
+        # extracted from past conversation events.
+        records = manager.list_long_term_memory_records(
+            namespace_prefix="preferences/user123",
+            max_results=10,
         )
-        return {"status": "success", "content": [{"text": preferences}]}
+        texts = [r.get("content", {}).get("text", "") for r in records]
+        texts = [t for t in texts if t]
+        if texts:
+            return {"status": "success", "content": [{"text": "\n".join(texts)}]}
+
+        # Extraction runs asynchronously after events are written, so fall
+        # back to the raw conversation if no records have materialized yet.
+        events = manager.list_events(actor_id="user123", session_id="session456")
+        for event in events:
+            for item in event.get("payload", []):
+                text = item.get("conversational", {}).get("content", {}).get("text")
+                if text:
+                    return {"status": "success", "content": [{"text": text}]}
+
+        return {"status": "success", "content": [{"text": "No preferences found"}]}
     except Exception as e:
         return {"status": "error", "content": [{"text": f"Error: {str(e)}"}]}
 
@@ -275,6 +301,7 @@ def create_weather_agent() -> Agent:
     IMPORTANT: Provide complete recommendations and end your response. Do NOT ask follow-up questions or wait for additional input."""
 
     return Agent(
+        model=MODEL_ID,
         tools=[
             get_weather_data,
             generate_analysis_code,

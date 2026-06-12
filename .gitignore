@@ -3,6 +3,7 @@ bin/
 .pulumi/
 _site/
 .jekyll-cache/
+.jekyll-metadata
 .sass-cache/
 *.js.map
 .DS_Store

@@ -11,6 +11,7 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "latest" },
     "ghcr.io/devcontainers/features/python:1": { "version": "latest" },
+    "ghcr.io/devcontainers/features/aws-cli:1": { "version": "latest" },
     "ghcr.io/devcontainers/features/github-cli:1": { "version": "latest" },
     "ghcr.io/dirien/devcontainer-features/opencode:0": { "version": "1.3.13" },
     "ghcr.io/dirien/devcontainer-feature-yaah/yaah:0": { "version": "0.3.3", "agent": "opencode" },
@@ -24,13 +25,14 @@
     "banner": "echo '[ -f \"${containerWorkspaceFolder}/.devcontainer/banner.sh\" ] && bash \"${containerWorkspaceFolder}/.devcontainer/banner.sh\"' >> ~/.bashrc"
   },
 
-  "forwardPorts": [4096, 4097, 3000, 8000, 8080],
+  "forwardPorts": [4096, 4097, 3000, 8000, 8080, 9000],
   "portsAttributes": {
     "4096": { "label": "OpenCode API" },
     "4097": { "label": "OpenCode Web" },
     "3000": { "label": "Dev Server" },
     "8000": { "label": "Dev Server Alt" },
-    "8080": { "label": "Dev Server Alt 2" }
+    "8080": { "label": "Dev Server Alt 2" },
+    "9000": { "label": "A2A Server" }
   },
   "otherPortsAttributes": { "onAutoForward": "silent" },
 
