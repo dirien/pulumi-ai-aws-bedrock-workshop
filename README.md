@@ -14,6 +14,8 @@ By the end of this workshop, you will have built and deployed:
 
 All infrastructure is defined as code with Pulumi (TypeScript or Python) and deployed through Pulumi ESC for centralized credential management.
 
+> ℹ️ **TypeScript or Python applies to the Pulumi *infrastructure* only.** The agent code itself is **Python in both tracks** — "TypeScript" here means the infrastructure-as-code language, not the agent.
+
 ## Prerequisites
 
 - A laptop with internet access

@@ -66,6 +66,10 @@ Unlike regular CloudWatch logs written directly by your code, vended logs go thr
 
 ## Step 1: Create a new Pulumi project
 
+> ℹ️ **The TypeScript/Python tabs are the Pulumi *infrastructure* language only.**
+> The weather agent itself is **Python in both tracks**. Pick the IaC language you
+> prefer — the deployed agent is the same either way.
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">

@@ -18,6 +18,11 @@ In Module 1 you ran `basic_agent.py` on your laptop and called it on
 *exact same file* to Amazon Bedrock AgentCore so it runs in the cloud and you can
 invoke it from anywhere.
 
+> ℹ️ **A note on the language tabs below.** You'll choose **TypeScript or Python**
+> for the Pulumi infrastructure. That choice is about the *infra* only — the agent
+> code (`basic_agent.py`) is **Python in both tracks**. Pick whichever IaC language
+> you're comfortable with; the deployed agent is the same either way.
+
 ## Key concepts
 
 ### Direct code deployment

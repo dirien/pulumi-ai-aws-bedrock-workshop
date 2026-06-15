@@ -94,6 +94,10 @@ first (`cd -` returns to wherever you were before; adjust if needed):
 cd -
 ```
 
+> ℹ️ **The TypeScript/Python tabs are the Pulumi *infrastructure* language only.**
+> The agents themselves are **Python in both tracks**. Pick the IaC language you
+> prefer — the deployed agents are identical.
+
 <div class="lang-tabs" markdown="1">
 
 <div class="lang-tab" data-lang="typescript" markdown="1">
