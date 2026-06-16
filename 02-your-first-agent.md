@@ -2,6 +2,8 @@
 ---
 # Module 2: Your first agent on AgentCore
 
+> 📖 **Reading this in VS Code?** The language tabs only render on the web. [**Open the rendered version ↗**](https://dirien.github.io/pulumi-ai-aws-bedrock-workshop/02-your-first-agent)
+
 **Duration:** ~30 minutes
 
 ## What you'll learn

@@ -2,6 +2,8 @@
 ---
 # Module 0: Setup, orientation and intro
 
+> 📖 **Reading this in VS Code?** The language tabs only render on the web. [**Open the rendered version ↗**](https://dirien.github.io/pulumi-ai-aws-bedrock-workshop/00-setup-and-orientation)
+
 **Duration:** ~20 minutes
 
 ## What you'll learn

@@ -2,6 +2,8 @@
 ---
 # Module 3: Multi-agent orchestration
 
+> 📖 **Reading this in VS Code?** The language tabs only render on the web. [**Open the rendered version ↗**](https://dirien.github.io/pulumi-ai-aws-bedrock-workshop/03-multi-agent-orchestration)
+
 **Duration:** ~40 minutes
 
 ## What you'll learn

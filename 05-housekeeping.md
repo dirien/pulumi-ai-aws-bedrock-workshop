@@ -2,6 +2,8 @@
 ---
 # Module 5: Cleanup
 
+> 📖 **Reading this in VS Code?** The language tabs only render on the web. [**Open the rendered version ↗**](https://dirien.github.io/pulumi-ai-aws-bedrock-workshop/05-housekeeping)
+
 **Duration:** ~10 minutes
 
 ## Cleaning up

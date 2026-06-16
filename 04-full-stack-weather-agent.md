@@ -3,6 +3,8 @@ render_with_liquid: false
 ---
 # Module 4: The full stack: weather agent with tools and memory
 
+> 📖 **Reading this in VS Code?** The language tabs only render on the web. [**Open the rendered version ↗**](https://dirien.github.io/pulumi-ai-aws-bedrock-workshop/04-full-stack-weather-agent)
+
 > **Stretch goal.** Skip this if you're keeping pace with the core path (Modules 0, 1, 2, 3, 5) and come back to it later. It's a standalone Pulumi stack, so nothing downstream depends on it. The next core module is [Module 5: Cleanup](05-housekeeping.md).
 
 **Duration:** ~40 minutes

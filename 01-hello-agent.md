@@ -2,6 +2,8 @@
 ---
 # Module 1: Hello, agent! Run locally
 
+> 📖 **Reading this in VS Code?** The language tabs only render on the web. [**Open the rendered version ↗**](https://dirien.github.io/pulumi-ai-aws-bedrock-workshop/01-hello-agent)
+
 **Duration:** ~30 minutes
 
 ## What you'll learn
